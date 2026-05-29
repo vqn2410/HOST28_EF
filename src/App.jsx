@@ -46,8 +46,8 @@ const Navigation = ({ currentPath, onNavigate }) => {
               <button
                 onClick={() => onNavigate('/admin')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all ${currentPath === '/admin'
-                    ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
-                    : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
+                  ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
+                  : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
                   }`}
               >
                 <Shield size={14} />
@@ -56,8 +56,8 @@ const Navigation = ({ currentPath, onNavigate }) => {
               <button
                 onClick={() => onNavigate('/asistencia-mensual')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all ${currentPath === '/asistencia-mensual'
-                    ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
-                    : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
+                  ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
+                  : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
                   }`}
               >
                 <Calendar size={14} />
@@ -66,8 +66,8 @@ const Navigation = ({ currentPath, onNavigate }) => {
               <button
                 onClick={() => onNavigate('/asistencia')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all ${currentPath === '/asistencia'
-                    ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
-                    : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
+                  ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
+                  : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
                   }`}
               >
                 <GraduationCap size={14} />
@@ -82,8 +82,8 @@ const Navigation = ({ currentPath, onNavigate }) => {
               <button
                 onClick={() => onNavigate('/admin')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all ${currentPath === '/admin'
-                    ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
-                    : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
+                  ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
+                  : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
                   }`}
               >
                 <Shield size={14} />
@@ -92,8 +92,8 @@ const Navigation = ({ currentPath, onNavigate }) => {
               <button
                 onClick={() => onNavigate('/asistencia-mensual')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all ${currentPath === '/asistencia-mensual'
-                    ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
-                    : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
+                  ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
+                  : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
                   }`}
               >
                 <Calendar size={14} />
@@ -107,8 +107,8 @@ const Navigation = ({ currentPath, onNavigate }) => {
             <button
               onClick={() => onNavigate('/asistencia')}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all ${currentPath === '/asistencia'
-                  ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
-                  : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
+                ? 'bg-primary-500/10 border-primary-500/30 text-primary-500'
+                : 'bg-transparent border-transparent text-slate-600 hover:text-primary-500 hover:bg-slate-100'
                 }`}
             >
               <GraduationCap size={14} />
@@ -243,7 +243,7 @@ const AppContent = () => {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src="/logo.png" className="w-8 h-8 object-contain" alt="Logo Escuela" />
-            <span className="font-semibold text-slate-700">HOST 28 • Escuela de Educación Secundaria Técnica (U.E.G.P. N°172)</span>
+            <span className="font-semibold text-slate-700">HOST 28 • Escuela de Educación Secundaria N° 28 - "Gustavo Cerati"</span>
           </div>
           <p className="text-slate-400 font-mono text-[10px]">
             © {new Date().getFullYear()} Sistema de Gestión Escolar EF. Conexión SSL Segura.

@@ -48,5 +48,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated(); // Docentes (creación) e incidentes leídos por Directores/Preceptores.
     }
+
+    // Colección: notificaciones (Notificaciones automáticas en tiempo real)
+    match /notificaciones/{notifId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
   }
 }

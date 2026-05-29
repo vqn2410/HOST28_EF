@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange } from 'lucide-react';
+import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2 } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { alumnos, agregarEstudiante, cursosConfig, actualizarCursoConfig, solicitudesFaltantes = [], informes = [] } = useSchoolData();
-  const { usuarios, registrarUsuario } = useAuth();
+  const { alumnos, agregarEstudiante, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, solicitudesFaltantes = [], informes = [] } = useSchoolData();
+  const { user, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario } = useAuth();
+
+  // Estados para el modo de edición
+  const [editingUsrDni, setEditingUsrDni] = useState(null);
+  const [editingEstDni, setEditingEstDni] = useState(null);
 
 
   // Cursos Oficiales según las especificaciones de la E.E.S N° 28:
@@ -35,7 +39,8 @@ const AdminPanel = () => {
     fechaNac: '',
     correo: '',
     rol: 'Docente',
-    situacionRevista: 'Titular'
+    situacionRevista: 'Titular',
+    cursosAsignados: []
   });
   const [usrError, setUsrError] = useState('');
   const [usrSuccess, setUsrSuccess] = useState('');
@@ -134,23 +139,39 @@ const AdminPanel = () => {
       return;
     }
 
-    if (usuarios.some(u => u.dni === dni)) {
+    if (!editingUsrDni && usuarios.some(u => u.dni === dni)) {
       setUsrError("Ya existe un usuario registrado con este DNI.");
       return;
     }
 
-    const nuevoUsuario = {
+    const datosUsuario = {
       apellido: apellido.trim(),
       nombre: nombre.trim(),
       dni: dni.trim(),
       fechaNac,
       correo: correo.trim(),
       rol,
-      situacionRevista: rol === 'Docente' ? situacionRevista : ''
+      situacionRevista: rol === 'Docente' ? situacionRevista : '',
+      cursosAsignados: (rol === 'Docente' || rol === 'Preceptor') ? usrForm.cursosAsignados : []
     };
 
-    registrarUsuario(nuevoUsuario);
-    setUsrSuccess(`¡Usuario "${nombre} ${apellido}" cargado con éxito!`);
+    if (editingUsrDni) {
+      if (editingUsrDni !== dni) {
+        if (usuarios.some(u => u.dni === dni)) {
+          setUsrError("El nuevo DNI ingresado ya está asignado a otro usuario.");
+          return;
+        }
+        eliminarUsuario(editingUsrDni);
+        registrarUsuario(datosUsuario);
+      } else {
+        actualizarUsuario(editingUsrDni, datosUsuario);
+      }
+      setUsrSuccess(`¡Usuario "${nombre} ${apellido}" actualizado con éxito!`);
+      setEditingUsrDni(null);
+    } else {
+      registrarUsuario(datosUsuario);
+      setUsrSuccess(`¡Usuario "${nombre} ${apellido}" cargado con éxito!`);
+    }
     
     setUsrForm({
       apellido: '',
@@ -159,7 +180,8 @@ const AdminPanel = () => {
       fechaNac: '',
       correo: '',
       rol: 'Docente',
-      situacionRevista: 'Titular'
+      situacionRevista: 'Titular',
+      cursosAsignados: []
     });
   };
 
@@ -181,14 +203,14 @@ const AdminPanel = () => {
       return;
     }
 
-    if (alumnos.some(a => a.dni === dni)) {
+    if (!editingEstDni && alumnos.some(a => a.dni === dni)) {
       setEstError("Ya existe un estudiante matriculado con este DNI.");
       return;
     }
 
     const cursoEFDefinitivo = asignarDiferenteEF ? cursoEF : cursoOrigen;
 
-    const nuevoEstudiante = {
+    const datosEstudiante = {
       apellido: apellido.trim(),
       nombre: nombre.trim(),
       dni: dni.trim(),
@@ -197,8 +219,23 @@ const AdminPanel = () => {
       cursoEF: cursoEFDefinitivo
     };
 
-    agregarEstudiante(nuevoEstudiante);
-    setEstSuccess(`¡Estudiante "${nombre} ${apellido}" matriculado con éxito!`);
+    if (editingEstDni) {
+      if (editingEstDni !== dni) {
+        if (alumnos.some(a => a.dni === dni)) {
+          setEstError("El nuevo DNI ingresado ya está asignado a otro estudiante.");
+          return;
+        }
+        eliminarEstudiante(editingEstDni);
+        agregarEstudiante(datosEstudiante);
+      } else {
+        actualizarEstudiante(editingEstDni, datosEstudiante);
+      }
+      setEstSuccess(`¡Estudiante "${nombre} ${apellido}" actualizado con éxito!`);
+      setEditingEstDni(null);
+    } else {
+      agregarEstudiante(datosEstudiante);
+      setEstSuccess(`¡Estudiante "${nombre} ${apellido}" matriculado con éxito!`);
+    }
 
     setEstForm({
       apellido: '',
@@ -296,7 +333,9 @@ const AdminPanel = () => {
               <div className="p-2.5 rounded-xl bg-primary-500/10 border border-primary-500/20 text-primary-500">
                 <UserPlus size={20} />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 font-display">Carga de Usuarios</h2>
+              <h2 className="text-lg font-bold text-slate-900 font-display">
+                {editingUsrDni ? 'Editar Usuario' : 'Carga de Usuarios'}
+              </h2>
             </div>
 
             {usrError && (
@@ -399,12 +438,70 @@ const AdminPanel = () => {
                 </div>
               )}
 
-              <button
-                type="submit"
-                className="w-full bg-primary-500 hover:bg-primary-600 text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
-              >
-                Guardar Usuario
-              </button>
+              {(usrForm.rol === 'Preceptor' || usrForm.rol === 'Docente') && (
+                <div className="animate-pulse-once">
+                  <label className="block text-[10px] font-bold text-slate-650 text-slate-600 uppercase mb-1.5">Asignar Cursos</label>
+                  <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[10px] font-bold text-slate-700 max-h-32 overflow-y-auto">
+                    {CURSOS.map(curso => {
+                      const isChecked = usrForm.cursosAsignados.includes(curso);
+                      return (
+                        <label key={curso} className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              const checked = e.target.checked;
+                              setUsrForm(prev => {
+                                let list = [...prev.cursosAsignados];
+                                if (checked) {
+                                  if (!list.includes(curso)) list.push(curso);
+                                } else {
+                                  list = list.filter(c => c !== curso);
+                                }
+                                return { ...prev, cursosAsignados: list };
+                              });
+                            }}
+                            className="rounded text-primary-500 focus:ring-primary-500 cursor-pointer w-3.5 h-3.5 border-slate-300"
+                          />
+                          <span>{curso}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                {editingUsrDni && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingUsrDni(null);
+                      setUsrForm({
+                        apellido: '',
+                        nombre: '',
+                        dni: '',
+                        fechaNac: '',
+                        correo: '',
+                        rol: 'Docente',
+                        situacionRevista: 'Titular',
+                        cursosAsignados: []
+                      });
+                      setUsrError('');
+                      setUsrSuccess('');
+                    }}
+                    className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans border border-slate-200"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className={`${editingUsrDni ? 'w-2/3' : 'w-full'} bg-primary-500 hover:bg-primary-600 text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans`}
+                >
+                  {editingUsrDni ? 'Guardar Cambios' : 'Guardar Usuario'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -416,7 +513,9 @@ const AdminPanel = () => {
               <div className="p-2.5 rounded-xl bg-accent-500/10 border border-accent-500/20 text-accent-500">
                 <GraduationCap size={20} />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 font-display">Matrícula Estudiantes</h2>
+              <h2 className="text-lg font-bold text-slate-900 font-display">
+                {editingEstDni ? 'Editar Estudiante' : 'Matrícula Estudiantes'}
+              </h2>
             </div>
 
             {estError && (
@@ -520,12 +619,36 @@ const AdminPanel = () => {
                 )}
               </div>
 
-              <button
-                type="submit"
-                className="w-full bg-accent-500 hover:bg-accent-600 text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
-              >
-                Matricular Alumno
-              </button>
+              <div className="flex gap-2">
+                {editingEstDni && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingEstDni(null);
+                      setEstForm({
+                        apellido: '',
+                        nombre: '',
+                        dni: '',
+                        cursoOrigen: '1°1°',
+                        turno: 'Mañana',
+                        asignarDiferenteEF: false,
+                        cursoEF: '1°1°'
+                      });
+                      setEstError('');
+                      setEstSuccess('');
+                    }}
+                    className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans border border-slate-200"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className={`${editingEstDni ? 'w-2/3' : 'w-full'} bg-accent-500 hover:bg-accent-600 text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans`}
+                >
+                  {editingEstDni ? 'Guardar Cambios' : 'Matricular Alumno'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -703,6 +826,7 @@ const AdminPanel = () => {
                   <th className="py-2.5 px-3">DNI</th>
                   <th className="py-2.5 px-3">Correo</th>
                   <th className="py-2.5 px-3 text-right">Rol</th>
+                  <th className="py-2.5 px-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -719,6 +843,51 @@ const AdminPanel = () => {
                       }`}>
                         {u.rol === 'Docente' && u.situacionRevista ? `${u.rol} (${u.situacionRevista})` : u.rol}
                       </span>
+                      {u.cursosAsignados && u.cursosAsignados.length > 0 && (
+                        <div className="text-[9px] text-slate-500 font-semibold mt-1">
+                          Cursos: {u.cursosAsignados.join(', ')}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingUsrDni(u.dni);
+                            setUsrForm({
+                              apellido: u.apellido,
+                              nombre: u.nombre,
+                              dni: u.dni,
+                              fechaNac: u.fechaNac || '',
+                              correo: u.correo,
+                              rol: u.rol,
+                              situacionRevista: u.situacionRevista || 'Titular',
+                              cursosAsignados: u.cursosAsignados || []
+                            });
+                            setUsrError('');
+                            setUsrSuccess('');
+                          }}
+                          className="p-1 text-primary-500 hover:text-primary-700 hover:bg-primary-500/10 rounded transition-colors cursor-pointer"
+                          title="Editar"
+                        >
+                          <Edit size={13} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (u.dni === user?.dni) {
+                              alert("No puedes eliminar tu propio usuario activo.");
+                              return;
+                            }
+                            if (window.confirm(`¿Está seguro de que desea eliminar al usuario ${u.nombre} ${u.apellido} (DNI: ${u.dni})?`)) {
+                              eliminarUsuario(u.dni);
+                            }
+                          }}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -745,6 +914,7 @@ const AdminPanel = () => {
                   <th className="py-2.5 px-3">Curso Origen</th>
                   <th className="py-2.5 px-3">Turno</th>
                   <th className="py-2.5 px-3 text-right">Curso EF</th>
+                  <th className="py-2.5 px-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -764,6 +934,41 @@ const AdminPanel = () => {
                           {a.cursoEF}
                         </span>
                       )}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingEstDni(a.dni);
+                            setEstForm({
+                              apellido: a.apellido,
+                              nombre: a.nombre,
+                              dni: a.dni,
+                              cursoOrigen: a.cursoOrigen,
+                              turno: a.turno,
+                              asignarDiferenteEF: a.cursoEF !== a.cursoOrigen,
+                              cursoEF: a.cursoEF
+                            });
+                            setEstError('');
+                            setEstSuccess('');
+                          }}
+                          className="p-1 text-accent-500 hover:text-accent-700 hover:bg-accent-500/10 rounded transition-colors cursor-pointer"
+                          title="Editar"
+                        >
+                          <Edit size={13} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`¿Está seguro de que desea eliminar al alumno ${a.nombre} ${a.apellido} (DNI: ${a.dni})?`)) {
+                              eliminarEstudiante(a.dni);
+                            }
+                          }}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

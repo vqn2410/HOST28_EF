@@ -10,20 +10,23 @@ const PreceptorDashboard = () => {
     cursosConfig, 
     informes, 
     solicitudesFaltantes, 
-    agregarSolicitudParteFaltante 
+    agregarSolicitudParteFaltante,
+    notificaciones = [],
+    marcarNotificacionLeida
   } = useSchoolData();
   const { user } = useAuth();
 
   // Navegación de Pestañas
   const [activeTab, setActiveTab] = useState('planilla'); // 'planilla' | 'solicitudes' | 'informes'
 
-  // Estados de Filtro (Planilla)
-  const [selectedMes, setSelectedMes] = useState("05"); // Mayo por defecto
-  const [selectedCurso, setSelectedCurso] = useState("1°1°");
-  const [selectedTurno, setSelectedTurno] = useState("Mañana");
+
 
   // Estados del Formulario (Solicitud Parte Faltante)
-  const [solCurso, setSolCurso] = useState('1°1°');
+  const [solCurso, setSolCurso] = useState(() => {
+    return user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
+      ? user.cursosAsignados[0]
+      : "1°1°";
+  });
   const [solFecha, setSolFecha] = useState('');
   const [solError, setSolError] = useState('');
   const [solSuccess, setSolSuccess] = useState('');
@@ -37,6 +40,44 @@ const PreceptorDashboard = () => {
     '5°1°', '5°2°',
     '6°1°', '6°2°'
   ], []);
+
+  // Cursos visibles según la asignación administrativa del Preceptor
+  const cursosVisibles = useMemo(() => {
+    if (user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0) {
+      return user.cursosAsignados;
+    }
+    return CURSOS;
+  }, [user, CURSOS]);
+
+  const misNotificaciones = useMemo(() => {
+    if (!user || !user.cursosAsignados) return [];
+    return notificaciones.filter(n => 
+      user.cursosAsignados.includes(n.curso) &&
+      !(n.leidaPor || []).includes(user.dni)
+    );
+  }, [notificaciones, user]);
+
+  // Estados de Filtro (Planilla)
+  const [selectedMes, setSelectedMes] = useState("05"); // Mayo por defecto
+  const [selectedCurso, setSelectedCurso] = useState(() => {
+    return user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
+      ? user.cursosAsignados[0]
+      : "1°1°";
+  });
+  const [selectedTurno, setSelectedTurno] = useState(() => {
+    const defaultCurso = user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
+      ? user.cursosAsignados[0]
+      : "1°1°";
+    return defaultCurso.endsWith('1°') ? 'Mañana' : 'Tarde';
+  });
+
+  // Escuchar y corregir el curso seleccionado si no coincide con los visibles
+  React.useEffect(() => {
+    if (cursosVisibles.length > 0 && !cursosVisibles.includes(selectedCurso)) {
+      setSelectedCurso(cursosVisibles[0]);
+      setSelectedTurno(cursosVisibles[0].endsWith('1°') ? 'Mañana' : 'Tarde');
+    }
+  }, [cursosVisibles, selectedCurso]);
 
   const MESES = [
     { value: "03", label: "Marzo" },
@@ -266,6 +307,43 @@ const PreceptorDashboard = () => {
         </button>
       </div>
 
+      {/* Panel de Notificaciones Recientes (Cargas de Docentes) */}
+      {misNotificaciones.length > 0 && (
+        <div className="space-y-3 p-4 bg-white border border-primary-500/20 rounded-2xl shadow-sm animate-fade-in mb-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
+            <Bell className="text-primary-500 animate-bounce" size={16} />
+            <h3 className="text-[10px] font-extrabold text-slate-800 uppercase tracking-wider font-display">
+              Novedades de Asistencia (Partes Recientes Cargados)
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {misNotificaciones.map((n) => (
+              <div
+                key={n.id}
+                className="relative overflow-hidden glass-panel bg-slate-50/50 border border-slate-200/80 p-3.5 rounded-xl shadow-xs flex items-start justify-between gap-4 animate-pulse-once"
+              >
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500"></div>
+                <div className="space-y-1">
+                  <span className="inline-block bg-primary-500/10 border border-primary-500/25 text-primary-700 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase">
+                    Curso {n.curso}
+                  </span>
+                  <p className="text-xs text-slate-700 font-bold leading-normal">{n.mensaje}</p>
+                  <span className="block text-[8px] text-slate-450 text-slate-500 font-medium font-mono">
+                    Registrado: {new Date(n.fechaCreacion).toLocaleString()}
+                  </span>
+                </div>
+                <button
+                  onClick={() => marcarNotificacionLeida(n.id, user.dni)}
+                  className="text-[9px] bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-650 font-extrabold px-2.5 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-xs"
+                >
+                  Entendido
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Renderizado de Pestañas */}
       <div className="pt-2 animate-fade-in">
         
@@ -300,7 +378,7 @@ const PreceptorDashboard = () => {
                     }}
                     className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-850 focus:outline-none transition-all font-extrabold cursor-pointer"
                   >
-                    {CURSOS.map(c => <option key={c} value={c}>Curso {c}</option>)}
+                    {cursosVisibles.map(c => <option key={c} value={c}>Curso {c}</option>)}
                   </select>
                 </div>
 
@@ -526,7 +604,7 @@ const PreceptorDashboard = () => {
                       onChange={e => setSolCurso(e.target.value)}
                       className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none font-extrabold cursor-pointer"
                     >
-                      {CURSOS.map(c => <option key={c} value={c}>Curso {c}</option>)}
+                      {cursosVisibles.map(c => <option key={c} value={c}>Curso {c}</option>)}
                     </select>
                   </div>
 

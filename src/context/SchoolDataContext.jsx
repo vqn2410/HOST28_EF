@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { collection, doc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const SchoolDataContext = createContext(null);
@@ -221,6 +221,7 @@ export const SchoolDataProvider = ({ children }) => {
   const [partes, setPartes] = useState([]);
   const [solicitudesFaltantes, setSolicitudesFaltantes] = useState([]);
   const [informes, setInformes] = useState([]);
+  const [notificaciones, setNotificaciones] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Sincronizar todos los datos con Firebase Firestore al montar el componente
@@ -262,6 +263,13 @@ export const SchoolDataProvider = ({ children }) => {
         snapInformes.forEach(doc => listInformes.push(doc.data()));
         setInformes(listInformes);
 
+        // 6. Cargar Notificaciones
+        const snapNotif = await getDocs(collection(db, "notificaciones"));
+        const listNotif = [];
+        snapNotif.forEach(doc => listNotif.push(doc.data()));
+        listNotif.sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
+        setNotificaciones(listNotif);
+
       } catch (error) {
         console.error("Error al cargar datos escolares desde Firebase:", error);
         
@@ -280,6 +288,9 @@ export const SchoolDataProvider = ({ children }) => {
 
         const localInformes = localStorage.getItem('host28_informes');
         setInformes(localInformes ? JSON.parse(localInformes) : INITIAL_INFORMES);
+
+        const localNotificaciones = localStorage.getItem('host28_notificaciones');
+        setNotificaciones(localNotificaciones ? JSON.parse(localNotificaciones) : []);
       } finally {
         setLoading(false);
       }
@@ -309,8 +320,11 @@ export const SchoolDataProvider = ({ children }) => {
     if (informes.length > 0) localStorage.setItem('host28_informes', JSON.stringify(informes));
   }, [informes]);
 
+  useEffect(() => {
+    if (notificaciones.length > 0) localStorage.setItem('host28_notificaciones', JSON.stringify(notificaciones));
+  }, [notificaciones]);
 
-  // Acciones conectadas a Firebase Firestore
+
   const agregarEstudiante = async (nuevoEstudiante) => {
     const studentObj = {
       ...nuevoEstudiante,
@@ -326,12 +340,53 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const actualizarEstudiante = async (estudianteDni, datosActualizados) => {
+    const studentObj = {
+      ...datosActualizados,
+      cursoEF: datosActualizados.cursoEF || datosActualizados.cursoOrigen
+    };
+    try {
+      await setDoc(doc(db, "alumnos", estudianteDni), studentObj, { merge: true });
+      setAlumnos(prev => prev.map(a => a.dni === estudianteDni ? studentObj : a));
+    } catch (error) {
+      console.error("Error al actualizar estudiante en Firebase:", error);
+      // Fallback
+      setAlumnos(prev => prev.map(a => a.dni === estudianteDni ? studentObj : a));
+    }
+  };
+
+  const eliminarEstudiante = async (estudianteDni) => {
+    try {
+      await deleteDoc(doc(db, "alumnos", estudianteDni));
+      setAlumnos(prev => prev.filter(a => a.dni !== estudianteDni));
+    } catch (error) {
+      console.error("Error al eliminar estudiante en Firebase:", error);
+      // Fallback
+      setAlumnos(prev => prev.filter(a => a.dni !== estudianteDni));
+    }
+  };
+
   const guardarParteEF = async (nuevoParte) => {
     const id = `p_${Date.now()}`;
     const parteObj = { id, ...nuevoParte };
     try {
       await setDoc(doc(db, "partes", id), parteObj);
       setPartes((prev) => [parteObj, ...prev]);
+
+      // AUTOMÁTICO: Crear notificación para el preceptor
+      const notifId = `notif_${Date.now()}`;
+      const fechaFormateada = new Date(nuevoParte.fecha + 'T00:00:00').toLocaleDateString('es-AR');
+      const notifObj = {
+        id: notifId,
+        curso: nuevoParte.curso,
+        fecha: nuevoParte.fecha,
+        mensaje: `El Prof. ${nuevoParte.firmaDigital.nombre} ${nuevoParte.firmaDigital.apellido} ha cargado la asistencia de ${nuevoParte.curso} (${nuevoParte.turno}) para la fecha ${fechaFormateada}.`,
+        tipo: 'asistencia_cargada',
+        fechaCreacion: new Date().toISOString(),
+        leidaPor: []
+      };
+      await setDoc(doc(db, "notificaciones", notifId), notifObj);
+      setNotificaciones((prev) => [notifObj, ...prev]);
 
       // Al cargar un parte, marcar automáticamente como completada cualquier solicitud pendiente para ese curso y fecha
       setSolicitudesFaltantes((prev) => {
@@ -428,6 +483,30 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const marcarNotificacionLeida = async (notifId, userDni) => {
+    try {
+      const notifRef = doc(db, "notificaciones", notifId);
+      const notif = notificaciones.find(n => n.id === notifId);
+      if (notif) {
+        const updatedLeidaPor = [...(notif.leidaPor || []), userDni];
+        await updateDoc(notifRef, { leidaPor: updatedLeidaPor });
+        setNotificaciones((prev) =>
+          prev.map((n) =>
+            n.id === notifId ? { ...n, leidaPor: updatedLeidaPor } : n
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error al marcar notificación como leída en Firebase:", error);
+      // Fallback
+      setNotificaciones((prev) =>
+        prev.map((n) =>
+          n.id === notifId ? { ...n, leidaPor: [...(n.leidaPor || []), userDni] } : n
+        )
+      );
+    }
+  };
+
   return (
     <SchoolDataContext.Provider value={{
       alumnos,
@@ -435,12 +514,16 @@ export const SchoolDataProvider = ({ children }) => {
       partes,
       solicitudesFaltantes,
       informes,
+      notificaciones,
       agregarEstudiante,
+      actualizarEstudiante,
+      eliminarEstudiante,
       guardarParteEF,
       guardarInforme,
       firmarAutoridadParte,
       actualizarCursoConfig,
       agregarSolicitudParteFaltante,
+      marcarNotificacionLeida,
       loading
     }}>
       {children}

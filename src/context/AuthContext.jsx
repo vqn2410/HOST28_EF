@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const AuthContext = createContext(null);
@@ -129,8 +129,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const actualizarUsuario = async (userDni, datosActualizados) => {
+    try {
+      await setDoc(doc(db, "usuarios", userDni), datosActualizados, { merge: true });
+      setUsuarios(prev => prev.map(u => u.dni === userDni ? { ...u, ...datosActualizados } : u));
+    } catch (error) {
+      console.error("Error al actualizar usuario en Firebase:", error);
+      // Fallback
+      setUsuarios(prev => prev.map(u => u.dni === userDni ? { ...u, ...datosActualizados } : u));
+    }
+  };
+
+  const eliminarUsuario = async (userDni) => {
+    try {
+      await deleteDoc(doc(db, "usuarios", userDni));
+      setUsuarios(prev => prev.filter(u => u.dni !== userDni));
+    } catch (error) {
+      console.error("Error al eliminar usuario en Firebase:", error);
+      // Fallback
+      setUsuarios(prev => prev.filter(u => u.dni !== userDni));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, usuarios, registrarUsuario, seedUsers: SEED_USERS, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario, seedUsers: SEED_USERS, loading }}>
       {children}
     </AuthContext.Provider>
   );
