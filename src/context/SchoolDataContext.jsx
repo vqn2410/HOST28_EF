@@ -369,43 +369,44 @@ export const SchoolDataProvider = ({ children }) => {
   const guardarParteEF = async (nuevoParte) => {
     const id = `p_${Date.now()}`;
     const parteObj = { id, ...nuevoParte };
+
+    const notifId = `notif_${Date.now()}`;
+    const fechaFormateada = new Date(nuevoParte.fecha + 'T00:00:00').toLocaleDateString('es-AR');
+    const notifObj = {
+      id: notifId,
+      curso: nuevoParte.curso,
+      fecha: nuevoParte.fecha,
+      mensaje: `El Prof. ${nuevoParte.firmaDigital.nombre} ${nuevoParte.firmaDigital.apellido} ha cargado la asistencia de ${nuevoParte.curso} (${nuevoParte.turno}) para la fecha ${fechaFormateada}.`,
+      tipo: 'asistencia_cargada',
+      fechaCreacion: new Date().toISOString(),
+      leidaPor: []
+    };
+
+    // Actualizar estados locales y localstorage inmediatamente para garantizar la reactividad local robusta
+    setPartes((prev) => [parteObj, ...prev]);
+    setNotificaciones((prev) => [notifObj, ...prev]);
+    setSolicitudesFaltantes((prev) => {
+      return prev.map((s) => {
+        if (s.curso === nuevoParte.curso && s.fecha === nuevoParte.fecha) {
+          return { ...s, completada: true };
+        }
+        return s;
+      });
+    });
+
+    // Intentar persistencia asíncrona en Firebase Firestore
     try {
       await setDoc(doc(db, "partes", id), parteObj);
-      setPartes((prev) => [parteObj, ...prev]);
-
-      // AUTOMÁTICO: Crear notificación para el preceptor
-      const notifId = `notif_${Date.now()}`;
-      const fechaFormateada = new Date(nuevoParte.fecha + 'T00:00:00').toLocaleDateString('es-AR');
-      const notifObj = {
-        id: notifId,
-        curso: nuevoParte.curso,
-        fecha: nuevoParte.fecha,
-        mensaje: `El Prof. ${nuevoParte.firmaDigital.nombre} ${nuevoParte.firmaDigital.apellido} ha cargado la asistencia de ${nuevoParte.curso} (${nuevoParte.turno}) para la fecha ${fechaFormateada}.`,
-        tipo: 'asistencia_cargada',
-        fechaCreacion: new Date().toISOString(),
-        leidaPor: []
-      };
       await setDoc(doc(db, "notificaciones", notifId), notifObj);
-      setNotificaciones((prev) => [notifObj, ...prev]);
 
-      // Al cargar un parte, marcar automáticamente como completada cualquier solicitud pendiente para ese curso y fecha
-      setSolicitudesFaltantes((prev) => {
-        return prev.map((s) => {
-          if (s.curso === nuevoParte.curso && s.fecha === nuevoParte.fecha) {
-            const updatedSol = { ...s, completada: true };
-            // Actualizar en Firebase async sin bloquear
-            setDoc(doc(db, "solicitudes", s.id), updatedSol).catch(err => 
-              console.error("Error al actualizar estado de solicitud en Firebase:", err)
-            );
-            return updatedSol;
-          }
-          return s;
-        });
-      });
+      const matchingSol = solicitudesFaltantes.find(
+        s => s.curso === nuevoParte.curso && s.fecha === nuevoParte.fecha
+      );
+      if (matchingSol) {
+        await setDoc(doc(db, "solicitudes", matchingSol.id), { ...matchingSol, completada: true });
+      }
     } catch (error) {
-      console.error("Error al guardar el parte en Firebase:", error);
-      // Fallback
-      setPartes((prev) => [parteObj, ...prev]);
+      console.error("Error al guardar el parte en Firebase (se mantiene copia local robusta):", error);
     }
   };
 

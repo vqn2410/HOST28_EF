@@ -652,15 +652,6 @@ const DocenteAsistencia = () => {
             </button>
           </form>
 
-          {signedParte && (
-            <div className="mt-8 pt-6 border-t border-slate-200 animate-pulse-once">
-              <h4 className="text-xs font-bold text-primary-500 uppercase tracking-wider mb-3">JSON Inmutable Registrado:</h4>
-              <pre className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[10px] font-mono text-slate-700 overflow-x-auto max-h-60 text-left leading-relaxed shadow-inner">
-                {JSON.stringify(signedParte, null, 2)}
-              </pre>
-            </div>
-          )}
-
         </div>
       )}
     </div>

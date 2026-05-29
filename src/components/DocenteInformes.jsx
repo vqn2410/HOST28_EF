@@ -15,11 +15,6 @@ const DocenteInformes = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [signedInforme, setSignedInforme] = useState(null);
 
-  // Filtrar estudiantes elegibles que no estén ya seleccionados
-  const estudiantesDisponibles = useMemo(() => {
-    return estudiantesElegibles.filter(el => !selectedStudents.some(s => s.dni === el.dni));
-  }, [estudiantesElegibles, selectedStudents]);
-
   // Computar dinámicamente los cursos asignados a este profesor desde la base de datos de administración
   const cursosAsignados = useMemo(() => {
     return Object.keys(cursosConfig).filter(
@@ -31,6 +26,11 @@ const DocenteInformes = () => {
     return alumnos.filter(al => cursosAsignados.includes(al.cursoEF))
       .sort((a, b) => a.apellido.localeCompare(b.apellido));
   }, [alumnos, cursosAsignados]);
+
+  // Filtrar estudiantes elegibles que no estén ya seleccionados
+  const estudiantesDisponibles = useMemo(() => {
+    return estudiantesElegibles.filter(el => !selectedStudents.some(s => s.dni === el.dni));
+  }, [estudiantesElegibles, selectedStudents]);
 
   const misInformes = useMemo(() => {
     return informes.filter(inf => inf.docenteNombre === `${user.nombre} ${user.apellido}`);
@@ -205,16 +205,6 @@ const DocenteInformes = () => {
             </button>
           </form>
         </div>
-
-        {/* JSON visualizador */}
-        {signedInforme && (
-          <div className="glass-panel p-4 rounded-2xl border border-accent-500/20 text-left animate-pulse-once bg-white shadow-sm">
-            <span className="block text-[9px] uppercase font-bold text-accent-600 mb-2">JSON del Acta Firmada:</span>
-            <pre className="text-[9px] font-mono text-slate-700 overflow-x-auto max-h-40 leading-tight">
-              {JSON.stringify(signedInforme, null, 2)}
-            </pre>
-          </div>
-        )}
       </div>
 
       {/* Historial de Informes */}

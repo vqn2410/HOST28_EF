@@ -75,16 +75,16 @@ const DocenteLibroTemas = () => {
   const headerInfo = useMemo(() => {
     const config = cursosConfig[selectedCurso];
     const primerParte = partesFiltrados[0];
-    
+
     // Buscar situación de revista del docente asignado al curso
     const docenteDni = config ? config.docenteDni : "333";
     const docenteObj = usuarios.find(u => u.dni === docenteDni);
     const situacion = docenteObj?.situacionRevista || "Titular";
     const docenteNombre = config ? config.docenteNombre : (primerParte ? primerParte.docenteNombre : "Roberto Fernández");
-    
+
     // Obtener días del curso
     const diasArray = config ? config.dias : (selectedCurso.endsWith('1°') ? [1, 3] : [2, 4]);
-    const diasLabel = diasArray.map(d => 
+    const diasLabel = diasArray.map(d =>
       d === 1 ? 'Lunes' : d === 2 ? 'Martes' : d === 3 ? 'Miércoles' : d === 4 ? 'Jueves' : 'Viernes'
     ).join(' y ');
 
@@ -148,7 +148,7 @@ const DocenteLibroTemas = () => {
       {/* REPLICA VISUAL DEL LIBRO DE TEMAS */}
       <div className="bg-white text-slate-950 p-6 md:p-8 rounded-3xl shadow-lg overflow-x-auto border border-slate-200 font-sans print:p-0 print:border-none print:shadow-none libro-temas-print-area">
         <div className="min-w-[1000px] space-y-6">
-          
+
           <div className="text-center">
             <h1 className="text-2xl font-extrabold tracking-wide uppercase font-serif border-b-2 border-slate-900 pb-1 inline-block text-slate-950">
               Libro de Temas
@@ -163,12 +163,13 @@ const DocenteLibroTemas = () => {
                   E.E.S N° 28 - "Gustavo Cerati"
                 </td>
                 <td className="border border-slate-900 p-2 w-[15%]">
-                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Anexo:</span>
-                  <span className="font-extrabold text-[10px] text-slate-950">HOST 28</span>
+                  <span className="font-bold block text-[8px] text-slate-500 uppercase">SEDE</span>
                 </td>
                 <td className="border border-slate-900 p-2 w-[15%]">
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Nivel:</span>
-                  <span className="font-extrabold text-[10px] text-slate-950">Secundario Técnico</span>
+                  <span className="font-extrabold text-[10px] text-slate-950">Secundario</span>
+                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Orientación:</span>
+                  <span className="font-extrabold text-[10px] text-slate-950">Arte-Música</span>
                 </td>
                 <td className="border border-slate-900 p-2 w-[15%]">
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Curso:</span>
@@ -292,10 +293,10 @@ const DocenteLibroTemas = () => {
               </tbody>
             </table>
           )}
-          
+
         </div>
       </div>
-      
+
       {/* Guía */}
       <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-start gap-2.5 text-xs text-slate-500 shadow-sm">
         <AlertCircle className="text-primary-500 shrink-0 mt-0.5" size={16} />

@@ -71,7 +71,7 @@ const Navigation = ({ currentPath, onNavigate }) => {
                   }`}
               >
                 <GraduationCap size={14} />
-                Panel Docente
+                Libro de Temas (Visar)
               </button>
             </>
           )}
