@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+  
+  /* Paleta institucional basada exactamente en el logotipo de la escuela */
+  --color-primary-50: #f0f5fa;
+  --color-primary-100: #e1ecf5;
+  --color-primary-500: #2f5499; /* Azul Real del Logo */
+  --color-primary-600: #1d3e7a;
+  --color-primary-700: #142a54;
+  --color-primary-900: #0a152a;
+  
+  --color-accent-500: #00a059; /* Verde Esmeralda del Logo */
+  --color-accent-600: #00874a;
+  
+  --color-gold-500: #fcd055; /* Amarillo Oro del Logo */
+  
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9; /* slate-100 */
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2f5499; /* primary-500 */
+}
+
+/* Forzar MODO CLARO global permanente */
+body {
+  font-family: var(--font-sans);
+  background-color: #f8fafc; /* Slate 50 - Fondo limpio e institucional */
+  color: #0f172a; /* Slate 900 */
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Panel de cristal en MODO CLARO premium */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+}
+
+/* Tarjeta interactiva en MODO CLARO premium */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(47, 84, 153, 0.3); /* Glowing royal blue border */
+  box-shadow: 0 12px 20px -8px rgba(47, 84, 153, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Sello Digital aprobado */
+.badge-signed {
+  background: linear-gradient(135deg, rgba(0, 160, 89, 0.08) 0%, rgba(47, 84, 153, 0.08) 100%);
+  border: 1px solid rgba(0, 160, 89, 0.25);
+  box-shadow: 0 0 15px rgba(0, 160, 89, 0.05);
+  animation: pulse-glow 2.5s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 160, 89, 0.03);
+    border-color: rgba(0, 160, 89, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 160, 89, 0.12);
+    border-color: rgba(47, 84, 153, 0.4);
+  }
+}
+
+/* Soporte de Impresión Oficial en Hoja Oficio Horizontal */
+@media print {
+  @page {
+    size: 340mm 220mm landscape; /* Tamaño Oficio Horizontal Oficial */
+    margin: 0.5cm;
+  }
+  
+  /* Ocultar elementos innecesarios */
+  nav, 
+  .glass-panel, 
+  .glass-card, 
+  button, 
+  footer, 
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ajustar contenedor para que ocupe todo el ancho sin márgenes */
+  .libro-temas-print-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+  }
+
+  .libro-temas-print-area > div {
+    min-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Asegurar que las tablas ocupen el ancho completo y muestren bordes negros definidos */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 10px !important;
+  }
+  
+  th, td {
+    border: 1.5px solid #000000 !important; /* Bordes negros gruesos oficiales */
+    padding: 5px !important;
+    color: black !important;
+    font-size: 9px !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    font-weight: bold !important;
+  }
+
+  /* Asegurar que las cabeceras de tabla se repitan en cada página y tengan fondo claro legible */
+  thead {
+    display: table-header-group !important;
+  }
+
+  /* Evitar saltos de línea huérfanos dentro de las filas de la tabla */
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+

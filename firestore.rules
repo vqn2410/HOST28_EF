@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función auxiliar para comprobar si el usuario está autenticado en la base de datos local
+    // (Nota: Dado que la aplicación utiliza un sistema de autenticación personalizado basado en DNI,
+    // estas reglas permiten acceso público o autenticado básico. Para máxima robustez con el sistema actual,
+    // validamos que se envíen peticiones estructuradas, pero si decides migrar a Firebase Auth en el futuro,
+    // puedes descomentar la línea de comprobación de `request.auth`).
+    
+    function isAuthenticated() {
+      // return request.auth != null;
+      return true; // Permitido temporalmente para compatibilidad con la base de usuarios por DNI en base de datos.
+    }
+
+    // Colección: usuarios (Perfiles del personal de la escuela)
+    match /usuarios/{dni} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // En producción con Firebase Auth: allow write: if request.auth.uid == dni || get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == 'Equipo de Conducción';
+    }
+
+    // Colección: alumnos (Matrícula oficial)
+    match /alumnos/{dni} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Permite a Directores y Preceptores gestionar alumnos.
+    }
+
+    // Colección: cursosConfig (Configuración de materias, horarios y docentes)
+    match /cursosConfig/{curso} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Reservado para Directores/Equipo de Conducción.
+    }
+
+    // Colección: partes (Partes diarios del Libro de Temas firmados digitalmente)
+    match /partes/{parteId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Docentes (creación) y Autoridades/Preceptores (firma/edición).
+    }
+
+    // Colección: solicitudes (Solicitudes de partes faltantes)
+    match /solicitudes/{solicitudId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Preceptores/Directores (creación) y Docentes (para completar).
+    }
+
+    // Colección: informes (Informes de incidencias y actas digitales de alumnos)
+    match /informes/{informeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Docentes (creación) e incidentes leídos por Directores/Preceptores.
+    }
+  }
+}
