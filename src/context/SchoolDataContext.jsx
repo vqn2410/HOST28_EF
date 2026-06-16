@@ -483,6 +483,25 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const eliminarCursoConfig = async (curso) => {
+    try {
+      await deleteDoc(doc(db, "cursosConfig", curso));
+      setCursosConfig((prev) => {
+        const copy = { ...prev };
+        delete copy[curso];
+        return copy;
+      });
+    } catch (error) {
+      console.error("Error al eliminar configuración de curso en Firebase:", error);
+      // Fallback
+      setCursosConfig((prev) => {
+        const copy = { ...prev };
+        delete copy[curso];
+        return copy;
+      });
+    }
+  };
+
   const agregarSolicitudParteFaltante = async (curso, fecha, solicitanteNombre, solicitanteRol) => {
     const id = `sol_${Date.now()}`;
     const solObj = {
@@ -544,6 +563,7 @@ export const SchoolDataProvider = ({ children }) => {
       guardarInforme,
       firmarAutoridadParte,
       actualizarCursoConfig,
+      eliminarCursoConfig,
       agregarSolicitudParteFaltante,
       marcarNotificacionLeida,
       loading

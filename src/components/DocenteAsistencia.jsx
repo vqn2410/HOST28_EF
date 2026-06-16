@@ -40,10 +40,16 @@ const DocenteAsistencia = () => {
     );
   }, [cursosConfig, user.dni]);
 
-  // Filtrar alumnos asignados
+  // Filtrar alumnos asignados: todos los que pertenezcan a este curso o realicen EF en él, ordenados alfabéticamente
   const alumnosFiltrados = useMemo(() => {
     if (!selectedCurso) return [];
-    return alumnos.filter(al => al.cursoEF === selectedCurso);
+    return alumnos
+      .filter(al => al.cursoOrigen === selectedCurso || al.cursoEF === selectedCurso)
+      .sort((a, b) => {
+        const nombreA = (a.nombre || '').trim().toLowerCase();
+        const nombreB = (b.nombre || '').trim().toLowerCase();
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+      });
   }, [alumnos, selectedCurso]);
 
   // Filtrar notificaciones de partes faltantes pendientes para este docente
@@ -82,9 +88,9 @@ const DocenteAsistencia = () => {
     const horarioEstimado = config ? config.horario : (turnoDetectado === "Mañana" ? "08:00 - 09:30" : "13:30 - 15:00");
     setHorario(horarioEstimado);
 
-    // Inicializar asistencia
+    // Inicializar asistencia (solo alumnos que cursan EF activamente en esta división)
     const initialAsistencia = {};
-    alumnos.filter(al => al.cursoEF === curso).forEach(al => {
+    alumnos.filter(al => al.cursoEF === curso && !al.noCursaEF).forEach(al => {
       initialAsistencia[al.dni] = 'Presente';
     });
     setAsistenciaState(initialAsistencia);
@@ -125,8 +131,8 @@ const DocenteAsistencia = () => {
       caracterFinal = '-';
       dinamicaFinal = '-';
 
-      // Marcar a todos los alumnos con "-" (no se tomó asistencia porque no hubo clases)
-      alumnosFiltrados.forEach(al => {
+      // Marcar a todos los alumnos activos en este curso con "-" (no se tomó asistencia porque no hubo clases)
+      alumnosFiltrados.filter(al => al.cursoEF === selectedCurso && !al.noCursaEF).forEach(al => {
         asistenciaFinal[al.dni] = '-';
       });
     } else {
@@ -507,49 +513,78 @@ const DocenteAsistencia = () => {
                       <tbody className="divide-y divide-slate-100">
                         {alumnosFiltrados.map((al) => {
                           const esExterno = al.cursoOrigen !== selectedCurso;
+                          const esInactivoEnEsteCurso = al.noCursaEF || (al.cursoEF !== selectedCurso && al.cursoOrigen === selectedCurso);
                           const controlValue = asistenciaState[al.dni] || 'Presente';
                           
                           return (
                             <tr key={al.dni} className="hover:bg-slate-50 text-slate-700">
-                              <td className="py-3 px-4 font-semibold text-slate-800">{al.nombre}</td>
+                              <td className="py-3 px-4 font-semibold">
+                                <span className={
+                                  al.noCursaEF 
+                                    ? 'text-red-600 line-through' 
+                                    : esInactivoEnEsteCurso 
+                                      ? 'text-slate-400 line-through' 
+                                      : 'text-slate-800'
+                                }>
+                                  {al.nombre}
+                                </span>
+                              </td>
                               <td className="py-3 px-3 font-mono text-slate-500">{al.dni}</td>
                               <td className="py-3 px-3 font-medium">
-                                {esExterno ? (
+                                {al.noCursaEF ? (
+                                  <span className="inline-block bg-red-100 text-red-700 border border-red-300 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider">
+                                    NO CURSA EF
+                                  </span>
+                                ) : al.cursoEF !== selectedCurso ? (
                                   <span className="inline-block bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-0.5 rounded text-[9px] font-bold">
-                                    {al.cursoOrigen} (Externo)
+                                    Cursa en {al.cursoEF}
+                                  </span>
+                                ) : esExterno ? (
+                                  <span className="inline-block bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[9px] font-bold">
+                                    Externo (desde {al.cursoOrigen})
                                   </span>
                                 ) : (
                                   <span className="text-slate-500">{al.cursoOrigen}</span>
                                 )}
                               </td>
                               <td className="py-3 px-4">
-                                <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAsistenciaChange(al.dni, 'Presente')}
-                                    className={`flex items-center gap-1 px-3 py-1 rounded-lg border font-bold text-[10px] transition-all cursor-pointer ${
-                                      controlValue === 'Presente'
-                                        ? 'bg-accent-50 text-accent-700 border-accent-300 shadow-sm'
-                                        : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
-                                    }`}
-                                  >
-                                    <Check size={10} />
-                                    Presente
-                                  </button>
-                                  
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAsistenciaChange(al.dni, 'Ausente')}
-                                    className={`flex items-center gap-1 px-3 py-1 rounded-lg border font-bold text-[10px] transition-all cursor-pointer ${
-                                      controlValue === 'Ausente'
-                                        ? 'bg-red-50 text-red-700 border-red-300 shadow-sm'
-                                        : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
-                                    }`}
-                                  >
-                                    <X size={10} />
-                                    Ausente
-                                  </button>
-                                </div>
+                                {al.noCursaEF ? (
+                                  <div className="text-center font-extrabold text-[9px] text-red-700 uppercase select-none py-1.5 bg-red-50 rounded-lg border border-red-200">
+                                    NO CURSA EF
+                                  </div>
+                                ) : esInactivoEnEsteCurso ? (
+                                  <div className="text-center font-bold text-[9px] text-slate-400 uppercase select-none py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                                    Sin Registro
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAsistenciaChange(al.dni, 'Presente')}
+                                      className={`flex items-center gap-1 px-3 py-1 rounded-lg border font-bold text-[10px] transition-all cursor-pointer ${
+                                        controlValue === 'Presente'
+                                          ? 'bg-accent-50 text-accent-700 border-accent-300 shadow-sm'
+                                          : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
+                                      }`}
+                                    >
+                                      <Check size={10} />
+                                      Presente
+                                    </button>
+                                    
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAsistenciaChange(al.dni, 'Ausente')}
+                                      className={`flex items-center gap-1 px-3 py-1 rounded-lg border font-bold text-[10px] transition-all cursor-pointer ${
+                                        controlValue === 'Ausente'
+                                          ? 'bg-red-50 text-red-700 border-red-300 shadow-sm'
+                                          : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
+                                      }`}
+                                    >
+                                      <X size={10} />
+                                      Ausente
+                                    </button>
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           );

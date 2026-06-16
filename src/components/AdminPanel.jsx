@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download } from 'lucide-react';
+import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, solicitudesFaltantes = [], informes = [] } = useSchoolData();
+  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [] } = useSchoolData();
   const { user, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario } = useAuth();
 
   // Estados para el modo de edición
@@ -67,18 +67,31 @@ const AdminPanel = () => {
     cursoOrigen: '1°1°',
     turno: 'Mañana',
     asignarDiferenteEF: false,
-    cursoEF: '1°1°'
+    cursoEF: '1°1°',
+    noCursaEF: false
   });
   const [estError, setEstError] = useState('');
   const [estSuccess, setEstSuccess] = useState('');
 
-  // Estados del Formulario de Configuración de Cursos EF (con turno auto-calculado)
+  // Estados de Filtros para la pestaña de Estudiantes Matriculados
+  const [filterCurso, setFilterCurso] = useState('Todos');
+  const [filterTurno, setFilterTurno] = useState('Todos');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Estados del Formulario de Configuración de Cursos EF (con turno auto-calculado y desglose de horarios)
   const [cursoConfigForm, setCursoConfigForm] = useState({
     curso: '1°1°',
     docenteDni: '',
     dias: [1, 3],
-    horario: '08:00 - 09:30',
-    turno: 'Mañana'
+    horariosPorDia: {
+      1: '08:00 - 09:30',
+      2: '08:00 - 09:30',
+      3: '08:00 - 09:30',
+      4: '08:00 - 09:30',
+      5: '08:00 - 09:30'
+    },
+    turno: 'Mañana',
+    horario: ''
   });
   const [cursoConfigError, setCursoConfigError] = useState('');
   const [cursoConfigSuccess, setCursoConfigSuccess] = useState('');
@@ -96,14 +109,92 @@ const AdminPanel = () => {
     return usuarios.filter(u => u.rol === 'Docente');
   }, [usuarios]);
 
+  // Ordenar alfabéticamente a los usuarios del Personal Registrado por Apellido y Nombre
+  const usuariosOrdenados = useMemo(() => {
+    return [...usuarios].sort((a, b) => {
+      const apellidoA = (a.apellido || '').trim().toLowerCase();
+      const apellidoB = (b.apellido || '').trim().toLowerCase();
+      const comp = apellidoA.localeCompare(apellidoB, 'es', { sensitivity: 'base' });
+      if (comp !== 0) return comp;
+      const nombreA = (a.nombre || '').trim().toLowerCase();
+      const nombreB = (b.nombre || '').trim().toLowerCase();
+      return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+    });
+  }, [usuarios]);
+
+  // Filtrar y ordenar alfabéticamente a los alumnos Matriculados por Nombre
+  const alumnosFiltradosYOrdenados = useMemo(() => {
+    let result = [...alumnos];
+    if (filterCurso !== 'Todos') {
+      result = result.filter(a => a.cursoOrigen === filterCurso);
+    }
+    if (filterTurno !== 'Todos') {
+      result = result.filter(a => a.turno === filterTurno);
+    }
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(a => 
+        (a.nombre || '').toLowerCase().includes(q) || 
+        (a.dni || '').includes(q)
+      );
+    }
+    return result.sort((a, b) => {
+      const nombreA = (a.nombre || '').trim().toLowerCase();
+      const nombreB = (b.nombre || '').trim().toLowerCase();
+      return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+    });
+  }, [alumnos, filterCurso, filterTurno, searchQuery]);
+
+  // Cargar la configuración inicial del curso '1°1°' una vez que los datos de cursosConfig y docentes estén disponibles
   React.useEffect(() => {
-    if (docentesDisponibles.length > 0 && !cursoConfigForm.docenteDni) {
+    if (cursosConfig && Object.keys(cursosConfig).length > 0 && docentesDisponibles.length > 0) {
+      const initialCurso = cursoConfigForm.curso;
+      const existingConfig = cursosConfig[initialCurso];
+      if (existingConfig) {
+        const dias = existingConfig.dias || [];
+        const turnoCalculado = determinarTurno(initialCurso);
+        const defaultHorario = turnoCalculado === 'Mañana' ? '08:00 - 09:30' : '13:30 - 15:00';
+        const horariosPorDia = {
+          1: defaultHorario,
+          2: defaultHorario,
+          3: defaultHorario,
+          4: defaultHorario,
+          5: defaultHorario
+        };
+        if (existingConfig.horariosPorDia) {
+          Object.assign(horariosPorDia, existingConfig.horariosPorDia);
+        } else if (existingConfig.horario) {
+          dias.forEach(d => {
+            horariosPorDia[d] = existingConfig.horario;
+          });
+        }
+        setCursoConfigForm(prev => {
+          // Si el docente ya está configurado para la sesión y coincide con el actual, omitir para no sobreescribir entradas del usuario
+          if (prev.docenteDni && prev.docenteDni !== docentesDisponibles[0]?.dni && prev.curso === initialCurso) {
+            return prev;
+          }
+          return {
+            ...prev,
+            docenteDni: existingConfig.docenteDni || docentesDisponibles[0]?.dni || '',
+            dias: dias,
+            horariosPorDia: horariosPorDia,
+            turno: existingConfig.turno || turnoCalculado,
+            horario: existingConfig.horario || ''
+          };
+        });
+      } else if (!cursoConfigForm.docenteDni && docentesDisponibles.length > 0) {
+        setCursoConfigForm(prev => ({
+          ...prev,
+          docenteDni: docentesDisponibles[0].dni
+        }));
+      }
+    } else if (docentesDisponibles.length > 0 && !cursoConfigForm.docenteDni) {
       setCursoConfigForm(prev => ({
         ...prev,
         docenteDni: docentesDisponibles[0].dni
       }));
     }
-  }, [docentesDisponibles, cursoConfigForm.docenteDni]);
+  }, [cursosConfig, docentesDisponibles]);
 
   // Manejar el cambio de curso de origen en matrícula de estudiantes para auto-calcular el turno
   const handleEstCursoOrigenChange = (cursoValue) => {
@@ -120,13 +211,51 @@ const AdminPanel = () => {
   // Manejar el cambio de curso en la configuración curricular para auto-calcular el turno y el horario estimado
   const handleCursoConfigChange = (cursoValue) => {
     const turnoCalculado = determinarTurno(cursoValue);
-    const horarioEstimado = turnoCalculado === 'Mañana' ? '08:00 - 09:30' : '13:30 - 15:00';
-    setCursoConfigForm(prev => ({
-      ...prev,
-      curso: cursoValue,
-      turno: turnoCalculado,
-      horario: horarioEstimado
-    }));
+    const defaultHorario = turnoCalculado === 'Mañana' ? '08:00 - 09:30' : '13:30 - 15:00';
+    
+    const existingConfig = cursosConfig?.[cursoValue];
+    if (existingConfig) {
+      const dias = existingConfig.dias || [];
+      const horariosPorDia = {
+        1: defaultHorario,
+        2: defaultHorario,
+        3: defaultHorario,
+        4: defaultHorario,
+        5: defaultHorario
+      };
+      
+      if (existingConfig.horariosPorDia) {
+        Object.assign(horariosPorDia, existingConfig.horariosPorDia);
+      } else if (existingConfig.horario) {
+        dias.forEach(d => {
+          horariosPorDia[d] = existingConfig.horario;
+        });
+      }
+      
+      setCursoConfigForm({
+        curso: cursoValue,
+        docenteDni: existingConfig.docenteDni || (docentesDisponibles[0]?.dni || ''),
+        dias: dias,
+        horariosPorDia: horariosPorDia,
+        turno: existingConfig.turno || turnoCalculado,
+        horario: existingConfig.horario || ''
+      });
+    } else {
+      setCursoConfigForm({
+        curso: cursoValue,
+        docenteDni: docentesDisponibles[0]?.dni || '',
+        dias: [1, 3],
+        horariosPorDia: {
+          1: defaultHorario,
+          2: defaultHorario,
+          3: defaultHorario,
+          4: defaultHorario,
+          5: defaultHorario
+        },
+        turno: turnoCalculado,
+        horario: ''
+      });
+    }
   };
 
   // 1. Manejo y validación de FormCargaUsuario
@@ -205,7 +334,7 @@ const AdminPanel = () => {
     setEstError('');
     setEstSuccess('');
 
-    const { nombre, dni, cursoOrigen, turno, asignarDiferenteEF, cursoEF } = estForm;
+    const { nombre, dni, cursoOrigen, turno, asignarDiferenteEF, cursoEF, noCursaEF } = estForm;
 
     if (!nombre.trim() || !dni.trim() || !cursoOrigen || !turno) {
       setEstError("Todos los campos son obligatorios.");
@@ -222,14 +351,15 @@ const AdminPanel = () => {
       return;
     }
 
-    const cursoEFDefinitivo = asignarDiferenteEF ? cursoEF : cursoOrigen;
+    const cursoEFDefinitivo = noCursaEF ? 'No cursa' : (asignarDiferenteEF ? cursoEF : cursoOrigen);
 
     const datosEstudiante = {
       nombre: nombre.trim(),
       dni: dni.trim(),
       cursoOrigen,
       turno,
-      cursoEF: cursoEFDefinitivo
+      cursoEF: cursoEFDefinitivo,
+      noCursaEF: !!noCursaEF
     };
 
     if (editingEstDni) {
@@ -256,7 +386,8 @@ const AdminPanel = () => {
       cursoOrigen: '1°1°',
       turno: 'Mañana',
       asignarDiferenteEF: false,
-      cursoEF: '1°1°'
+      cursoEF: '1°1°',
+      noCursaEF: false
     });
   };
 
@@ -389,8 +520,15 @@ const AdminPanel = () => {
 
         // Normalizar curso de origen y EF (eliminar espacios y corregir ordinal º a °)
         cursoOrigen = cursoOrigen.replace(/\s+/g, '').replace(/º/g, '°');
+        let noCursaEF = false;
         if (cursoEF) {
-          cursoEF = cursoEF.replace(/\s+/g, '').replace(/º/g, '°');
+          const normEF = cursoEF.replace(/\s+/g, '').toLowerCase();
+          if (normEF === 'nocursa' || normEF === 'no') {
+            noCursaEF = true;
+            cursoEF = 'No cursa';
+          } else {
+            cursoEF = cursoEF.replace(/\s+/g, '').replace(/º/g, '°');
+          }
         } else {
           cursoEF = cursoOrigen;
         }
@@ -413,7 +551,7 @@ const AdminPanel = () => {
           continue;
         }
 
-        if (cursoEF && !CURSOS.includes(cursoEF)) {
+        if (cursoEF && !noCursaEF && !CURSOS.includes(cursoEF)) {
           errorCount++;
           currentLogs.push({ text: `❌ Fila ${lineNum}: El curso de Educación Física "${cursoEF}" para "${nombre}" no es un curso oficial válido.`, type: 'error' });
           continue;
@@ -425,7 +563,8 @@ const AdminPanel = () => {
           dni,
           cursoOrigen,
           turno: turnoCalculado,
-          cursoEF: cursoEF || cursoOrigen
+          cursoEF: cursoEF || cursoOrigen,
+          noCursaEF: noCursaEF
         };
 
         if (currentAlumnos.some(a => a.dni === dni)) {
@@ -484,10 +623,29 @@ const AdminPanel = () => {
     setCursoConfigError('');
     setCursoConfigSuccess('');
 
-    const { curso, docenteDni, dias, horario, turno } = cursoConfigForm;
+    const { curso, docenteDni, dias, horariosPorDia, turno } = cursoConfigForm;
 
-    if (!curso || !docenteDni || dias.length === 0 || !horario.trim() || !turno) {
-      setCursoConfigError("Todos los campos son obligatorios. Seleccione al menos un día de clase.");
+    if (!curso || !docenteDni || !turno) {
+      setCursoConfigError("Todos los campos son obligatorios.");
+      return;
+    }
+
+    if (dias.length === 0) {
+      setCursoConfigError("Debe seleccionar al menos un día de cursada semanal.");
+      return;
+    }
+
+    // Validar que los días seleccionados tengan horario asignado
+    const diasFaltantesDeHorario = [];
+    dias.forEach(d => {
+      if (!horariosPorDia[d] || !horariosPorDia[d].trim()) {
+        const label = DIAS_SEMANA.find(ds => ds.value === d)?.label || d;
+        diasFaltantesDeHorario.push(label);
+      }
+    });
+
+    if (diasFaltantesDeHorario.length > 0) {
+      setCursoConfigError(`Debe ingresar un horario para los siguientes días: ${diasFaltantesDeHorario.join(', ')}.`);
       return;
     }
 
@@ -497,11 +655,29 @@ const AdminPanel = () => {
       return;
     }
 
+    // Ordenar los días seleccionados
+    const diasOrdenados = [...dias].sort((a, b) => a - b);
+
+    // Formatear el horario consolidado: e.g. "Lunes 13:00 a 15:00 • Jueves 16:00 a 17:00"
+    const partesHorario = diasOrdenados.map(d => {
+      const diaLabel = DIAS_SEMANA.find(ds => ds.value === d)?.label || '';
+      const hVal = horariosPorDia[d].trim();
+      return `${diaLabel} ${hVal}`;
+    });
+    const horarioConsolidado = partesHorario.join(' • ');
+
+    // Filtrar horariosPorDia para guardar solo los seleccionados
+    const horariosPorDiaFiltrado = {};
+    diasOrdenados.forEach(d => {
+      horariosPorDiaFiltrado[d] = horariosPorDia[d].trim();
+    });
+
     const nuevaConfig = {
       docenteDni,
       docenteNombre: `${docente.nombre} ${docente.apellido}`,
-      dias: dias.sort((a,b) => a - b),
-      horario: horario.trim(),
+      dias: diasOrdenados,
+      horariosPorDia: horariosPorDiaFiltrado,
+      horario: horarioConsolidado,
       turno
     };
 
@@ -512,13 +688,29 @@ const AdminPanel = () => {
   const handleDiaCheckboxChange = (diaValue, isChecked) => {
     setCursoConfigForm(prev => {
       let nuevosDias = [...prev.dias];
+      const horariosPorDia = { ...prev.horariosPorDia };
+      
       if (isChecked) {
         if (!nuevosDias.includes(diaValue)) nuevosDias.push(diaValue);
+        // Si al seleccionar el día está vacío, auto-completar con el horario estándar según el turno actual
+        if (!horariosPorDia[diaValue] || !horariosPorDia[diaValue].trim()) {
+          horariosPorDia[diaValue] = prev.turno === 'Mañana' ? '08:00 - 09:30' : '13:30 - 15:00';
+        }
       } else {
         nuevosDias = nuevosDias.filter(d => d !== diaValue);
       }
-      return { ...prev, dias: nuevosDias };
+      return { ...prev, dias: nuevosDias, horariosPorDia };
     });
+  };
+
+  const handleHorarioPorDiaChange = (diaValue, newHorario) => {
+    setCursoConfigForm(prev => ({
+      ...prev,
+      horariosPorDia: {
+        ...prev.horariosPorDia,
+        [diaValue]: newHorario
+      }
+    }));
   };
 
   const tabs = [
@@ -791,7 +983,7 @@ const AdminPanel = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {usuarios.map((u, i) => (
+                  {usuariosOrdenados.map((u, i) => (
                     <tr key={i} className="hover:bg-slate-50 text-slate-700">
                       <td className="py-2.5 px-3 font-semibold text-slate-800">{u.apellido}, {u.nombre}</td>
                       <td className="py-2.5 px-3 font-mono text-slate-500">{u.dni}</td>
@@ -998,33 +1190,62 @@ const AdminPanel = () => {
                       </select>
                     </div>
 
-                    <div className="pt-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <div className="pt-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                      {/* Checkbox No Cursa EF */}
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-slate-700 leading-tight">
-                          ¿Cursada EF Alternativa?
+                        <span className="text-[10px] font-bold text-slate-700 leading-tight font-display">
+                          ¿No cursa Educación Física? (Exceptuado)
                         </span>
                         <label className="inline-flex relative items-center cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={estForm.asignarDiferenteEF}
-                            onChange={e => setEstForm({...estForm, asignarDiferenteEF: e.target.checked})}
+                            checked={estForm.noCursaEF || false}
+                            onChange={e => {
+                              const checked = e.target.checked;
+                              setEstForm({
+                                ...estForm,
+                                noCursaEF: checked,
+                                // Si no cursa, forzar asignarDiferenteEF a false
+                                asignarDiferenteEF: checked ? false : estForm.asignarDiferenteEF
+                              });
+                            }}
                             className="sr-only peer"
                           />
-                          <div className="w-8 h-4.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-350 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-accent-500"></div>
+                          <div className="w-8 h-4.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-350 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-red-500"></div>
                         </label>
                       </div>
 
-                      {estForm.asignarDiferenteEF && (
-                        <div className="mt-2.5 pt-2.5 border-t border-slate-200 animate-pulse-once">
-                          <label className="block text-[9px] font-bold text-accent-600 uppercase mb-1">Curso de Educación Física Destino</label>
-                          <select
-                            value={estForm.cursoEF}
-                            onChange={e => setEstForm({...estForm, cursoEF: e.target.value})}
-                            className="w-full bg-white border border-accent-500/20 focus:border-accent-500 rounded-lg px-2.5 py-1 text-xs text-slate-805 focus:outline-none font-bold"
-                          >
-                            {CURSOS.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                        </div>
+                      {/* Asignación Diferente EF (solo si cursa materia) */}
+                      {!estForm.noCursaEF && (
+                        <>
+                          <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                            <span className="text-[10px] font-bold text-slate-700 leading-tight">
+                              ¿Cursada EF Alternativa? (Otro Curso)
+                            </span>
+                            <label className="inline-flex relative items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={estForm.asignarDiferenteEF}
+                                onChange={e => setEstForm({...estForm, asignarDiferenteEF: e.target.checked})}
+                                className="sr-only peer"
+                              />
+                              <div className="w-8 h-4.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-350 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-accent-500"></div>
+                            </label>
+                          </div>
+
+                          {estForm.asignarDiferenteEF && (
+                            <div className="mt-2.5 pt-2.5 border-t border-slate-200 animate-pulse-once">
+                              <label className="block text-[9px] font-bold text-accent-600 uppercase mb-1">Curso de Educación Física Destino</label>
+                              <select
+                                value={estForm.cursoEF}
+                                onChange={e => setEstForm({...estForm, cursoEF: e.target.value})}
+                                className="w-full bg-white border border-accent-500/20 focus:border-accent-500 rounded-lg px-2.5 py-1 text-xs text-slate-855 focus:outline-none font-bold"
+                              >
+                                {CURSOS.map(c => <option key={c} value={c}>Curso {c}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -1040,7 +1261,8 @@ const AdminPanel = () => {
                               cursoOrigen: '1°1°',
                               turno: 'Mañana',
                               asignarDiferenteEF: false,
-                              cursoEF: '1°1°'
+                              cursoEF: '1°1°',
+                              noCursaEF: false
                             });
                             setEstError('');
                             setEstSuccess('');
@@ -1073,6 +1295,71 @@ const AdminPanel = () => {
               </div>
               <span className="text-[10px] text-slate-500 uppercase bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md font-bold">Vite Live State</span>
             </div>
+
+            {/* Barra de Filtros interactiva */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4 text-xs font-semibold animate-fade-in">
+              <div className="flex flex-wrap items-center gap-3.5 flex-1">
+                {/* Buscador */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Buscar estudiante o DNI..."
+                    className="w-full bg-white border border-slate-300 focus:border-accent-500 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 focus:outline-none font-medium placeholder-slate-400 transition-colors shadow-sm"
+                  />
+                </div>
+
+                {/* Filtro por Curso */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Curso:</span>
+                  <select
+                    value={filterCurso}
+                    onChange={e => setFilterCurso(e.target.value)}
+                    className="bg-white border border-slate-300 focus:border-accent-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold cursor-pointer shadow-sm"
+                  >
+                    <option value="Todos">Todos</option>
+                    {CURSOS.map(c => (
+                      <option key={c} value={c}>Curso {c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro por Turno */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase shrink-0">Turno:</span>
+                  <select
+                    value={filterTurno}
+                    onChange={e => setFilterTurno(e.target.value)}
+                    className="bg-white border border-slate-300 focus:border-accent-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold cursor-pointer shadow-sm"
+                  >
+                    <option value="Todos">Todos</option>
+                    <option value="Mañana">Mañana</option>
+                    <option value="Tarde">Tarde</option>
+                  </select>
+                </div>
+
+                {/* Botón Limpiar */}
+                {(filterCurso !== 'Todos' || filterTurno !== 'Todos' || searchQuery.trim() !== '') && (
+                  <button
+                    onClick={() => {
+                      setFilterCurso('Todos');
+                      setFilterTurno('Todos');
+                      setSearchQuery('');
+                    }}
+                    className="text-[10px] font-extrabold text-red-500 hover:text-red-750 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 transition-colors uppercase cursor-pointer"
+                  >
+                    Limpiar Filtros
+                  </button>
+                )}
+              </div>
+
+              <div className="text-[10px] text-slate-500 uppercase font-extrabold select-none shrink-0 text-right">
+                Mostrando <strong className="text-slate-900">{alumnosFiltradosYOrdenados.length}</strong> de <strong className="text-slate-900">{alumnos.length}</strong>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
@@ -1086,15 +1373,19 @@ const AdminPanel = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {alumnos.map((a, i) => (
+                  {alumnosFiltradosYOrdenados.map((a, i) => (
                     <tr key={i} className="hover:bg-slate-50 text-slate-700">
                       <td className="py-2.5 px-3 font-semibold text-slate-800">{a.nombre}</td>
                       <td className="py-2.5 px-3 font-mono text-slate-500">{a.dni}</td>
                       <td className="py-2.5 px-3 font-bold text-slate-700">{a.cursoOrigen}</td>
                       <td className="py-2.5 px-3 text-slate-600">{a.turno}</td>
                       <td className="py-2.5 px-3 text-right">
-                        {a.cursoEF !== a.cursoOrigen ? (
-                          <span className="inline-block bg-yellow-50 text-yellow-700 border border-yellow-250 px-2 py-0.5 rounded text-[9px] font-bold">
+                        {a.noCursaEF ? (
+                          <span className="inline-block bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase">
+                            No cursa EF
+                          </span>
+                        ) : a.cursoEF !== a.cursoOrigen ? (
+                          <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[9px] font-bold">
                             {a.cursoEF} (Externo)
                           </span>
                         ) : (
@@ -1113,8 +1404,9 @@ const AdminPanel = () => {
                                 dni: a.dni,
                                 cursoOrigen: a.cursoOrigen,
                                 turno: a.turno,
-                                asignarDiferenteEF: a.cursoEF !== a.cursoOrigen,
-                                cursoEF: a.cursoEF
+                                asignarDiferenteEF: !a.noCursaEF && a.cursoEF !== a.cursoOrigen,
+                                cursoEF: a.cursoEF,
+                                noCursaEF: !!a.noCursaEF
                               });
                               setEstError('');
                               setEstSuccess('');
@@ -1203,43 +1495,52 @@ const AdminPanel = () => {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Horario Cursada</label>
-                      <input
-                        type="text"
-                        value={cursoConfigForm.horario}
-                        onChange={e => setCursoConfigForm({...cursoConfigForm, horario: e.target.value})}
-                        placeholder="08:00 - 09:30"
-                        className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-655 text-slate-600 uppercase mb-1">Turno *(Auto)</label>
-                      <input
-                        type="text"
-                        value={cursoConfigForm.turno}
-                        disabled
-                        className="w-full bg-slate-50 border border-slate-200 text-slate-500 rounded-lg px-3 py-1.5 text-xs font-bold cursor-not-allowed"
-                      />
-                    </div>
+                  <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Turno de Cursada</span>
+                    <span className="text-xs font-extrabold text-primary-600 uppercase bg-primary-50 border border-primary-200 px-2.5 py-0.5 rounded-md">
+                      {cursoConfigForm.turno}
+                    </span>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Días de Cursada Semanal</label>
-                    <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[10px] text-slate-700 font-bold">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase">
+                      Días y Horarios de Cursada
+                    </label>
+                    <div className="space-y-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
                       {DIAS_SEMANA.map(dia => {
                         const isChecked = cursoConfigForm.dias.includes(dia.value);
+                        const scheduleValue = cursoConfigForm.horariosPorDia?.[dia.value] || '';
                         return (
-                          <label key={dia.value} className="flex items-center gap-1.5 cursor-pointer">
+                          <div
+                            key={dia.value}
+                            className={`flex items-center gap-3 bg-white p-2 rounded-xl border shadow-sm transition-all duration-200 ${
+                              isChecked ? 'border-primary-100 ring-1 ring-primary-50/50' : 'border-slate-150'
+                            }`}
+                          >
+                            <label className="flex items-center gap-2 cursor-pointer w-24 shrink-0 select-none">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={e => handleDiaCheckboxChange(dia.value, e.target.checked)}
+                                className="rounded text-primary-500 focus:ring-primary-500 cursor-pointer w-4 h-4 border-slate-350"
+                              />
+                              <span className={`text-xs font-bold transition-colors ${isChecked ? 'text-slate-900' : 'text-slate-400'}`}>
+                                {dia.label}
+                              </span>
+                            </label>
                             <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={e => handleDiaCheckboxChange(dia.value, e.target.checked)}
-                              className="rounded text-primary-500 focus:ring-primary-500 cursor-pointer w-3.5 h-3.5 border-slate-300"
+                              type="text"
+                              value={scheduleValue}
+                              disabled={!isChecked}
+                              onChange={e => handleHorarioPorDiaChange(dia.value, e.target.value)}
+                              placeholder={isChecked ? "Ej: 13:00 a 15:00" : "Día no seleccionado"}
+                              className={`w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none font-mono transition-all duration-200 ${
+                                isChecked
+                                  ? 'bg-white border-slate-300 focus:border-primary-500 text-slate-900'
+                                  : 'bg-slate-50/50 border-slate-200 text-slate-400 cursor-not-allowed placeholder-slate-350'
+                              }`}
                             />
-                            <span>{dia.label}</span>
-                          </label>
+                          </div>
                         );
                       })}
                     </div>
@@ -1274,6 +1575,7 @@ const AdminPanel = () => {
                     <th className="py-2.5 px-3">Docente</th>
                     <th className="py-2.5 px-3">Días de Clase</th>
                     <th className="py-2.5 px-3 text-right">Horario</th>
+                    <th className="py-2.5 px-3 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1293,6 +1595,31 @@ const AdminPanel = () => {
                           </span>
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono text-slate-500">{c.horario}</td>
+                        <td className="py-2.5 px-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => {
+                                handleCursoConfigChange(curso);
+                                setActiveTab('cursos_carga');
+                              }}
+                              className="p-1 text-primary-500 hover:text-primary-700 hover:bg-primary-500/10 rounded transition-colors cursor-pointer"
+                              title="Editar Configuración"
+                            >
+                              <Edit size={13} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`¿Está seguro de que desea eliminar la configuración curricular para el curso ${curso}?`)) {
+                                  eliminarCursoConfig(curso);
+                                }
+                              }}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
+                              title="Eliminar Configuración"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}

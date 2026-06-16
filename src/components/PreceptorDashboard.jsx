@@ -120,16 +120,25 @@ const PreceptorDashboard = () => {
     return dias;
   }, [selectedMes, claseDiasSemana]);
 
-  // 1. Filtrar Alumnos Oficiales / Regulares
+  // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso)
   const alumnosRegulares = useMemo(() => {
-    return alumnos.filter(al => al.cursoEF === selectedCurso);
+    return alumnos.filter(al => al.cursoEF === selectedCurso && !al.noCursaEF);
   }, [alumnos, selectedCurso]);
 
-  // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso
+  // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados)
   const alumnosReasignados = useMemo(() => {
     return alumnos.filter(al => 
       al.cursoOrigen === selectedCurso && 
-      al.cursoEF !== selectedCurso
+      al.cursoEF !== selectedCurso &&
+      !al.noCursaEF
+    );
+  }, [alumnos, selectedCurso]);
+
+  // 3. Filtrar Alumnos Exceptuados de EF
+  const alumnosExceptuados = useMemo(() => {
+    return alumnos.filter(al => 
+      al.cursoOrigen === selectedCurso && 
+      !!al.noCursaEF
     );
   }, [alumnos, selectedCurso]);
 
@@ -590,6 +599,54 @@ const PreceptorDashboard = () => {
                           </tr>
                         );
                       })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Grilla 3 - Alumnos Exceptuados */}
+            <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-850 font-display flex items-center gap-2">
+                    <span className="text-slate-850">Grilla 3: Alumnos Exceptuados (No cursan EF)</span>
+                    <span className="text-xs bg-red-50 border border-red-200 text-red-700 font-bold px-2.5 py-0.5 rounded-full">
+                      {alumnosExceptuados.length} Estudiantes
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Alumnos pertenecientes originalmente a {selectedCurso} que están eximidos o no cursan la materia.</p>
+                </div>
+              </div>
+
+              {alumnosExceptuados.length === 0 ? (
+                <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                  <p className="text-xs text-slate-400 font-bold">No hay alumnos exceptuados en esta división.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto font-sans">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
+                        <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
+                        <th className="py-3 px-2 text-slate-400 font-mono">DNI</th>
+                        <th className="py-3 px-3 font-bold text-red-750">Estado</th>
+                        <th className="py-3 px-3 font-bold text-slate-600">Observaciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {alumnosExceptuados.map((al) => (
+                        <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
+                          <td className="py-3 px-3 font-bold text-slate-850 line-through">{al.nombre}</td>
+                          <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
+                          <td className="py-3 px-3">
+                            <span className="inline-block bg-red-50 text-red-700 border border-red-250 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                              Exceptuado / No cursa
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-slate-500 italic">No registra cómputo de asistencia para EF.</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
