@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolData } from '../context/SchoolDataContext';
-import { Check, X, FileSignature, CheckCircle2, ChevronRight, AlertCircle, AlertOctagon, Bell, Calendar } from 'lucide-react';
+import { Check, X, FileSignature, CheckCircle2, ChevronRight, AlertCircle, AlertOctagon, Bell, Calendar, Edit, Trash2, Clock } from 'lucide-react';
 
 const DocenteAsistencia = () => {
   const { user } = useAuth();
-  const { alumnos, guardarParteEF, cursosConfig, solicitudesFaltantes } = useSchoolData();
+  const { alumnos, guardarParteEF, actualizarParteEF, eliminarParteEF, partes = [], cursosConfig, solicitudesFaltantes } = useSchoolData();
 
   // Estados del Formulario
   const [selectedCurso, setSelectedCurso] = useState(null);
+  const [isEditingParteId, setIsEditingParteId] = useState(null);
   const [fecha, setFecha] = useState(() => new Date().toISOString().split('T')[0]);
   const [horario, setHorario] = useState('08:00 - 09:30');
   
@@ -39,6 +40,35 @@ const DocenteAsistencia = () => {
       (curso) => cursosConfig[curso].docenteDni === user.dni
     );
   }, [cursosConfig, user.dni]);
+
+  const misPartesEntregados = useMemo(() => {
+    return partes.filter(p => cursosAsignados.includes(p.curso));
+  }, [partes, cursosAsignados]);
+
+  const handleEditParteClick = (parte) => {
+    setIsEditingParteId(parte.id);
+    setSelectedCurso(parte.curso);
+    setFecha(parte.fecha);
+    setHorario(parte.horario);
+    setHuboClase(parte.huboClase || 'Sí');
+    setMotivoSuspension(parte.motivoSuspension || 'Licencia Médica');
+    setOtroMotivoText(parte.otroMotivoText || '');
+    setClaseNum(parte.claseNum || '');
+    setUnidad(parte.unidad || '');
+    setCaracter(parte.caracter || 'Práctica');
+    setDinamica(parte.dinamica || 'Grupal');
+    setTemaAbordado(parte.temaAbordado || '');
+    setObservaciones(parte.observaciones || '');
+    setAsistenciaState(parte.asistencia || {});
+    setSuccessMsg('');
+    setErrorMsg('');
+  };
+
+  const handleDeleteParteClick = async (parteId) => {
+    if (window.confirm("¿Está seguro de que desea eliminar permanentemente este parte diario de asistencia? Esta acción no se puede deshacer y afectará las planillas acumuladas.")) {
+      await eliminarParteEF(parteId);
+    }
+  };
 
   const alumnosFiltrados = useMemo(() => {
     if (!selectedCurso) return [];
@@ -194,20 +224,30 @@ const DocenteAsistencia = () => {
       asistencia: asistenciaFinal,
       contenido: temaAbordadoFinal,
       firmaDigital,
-      firmaAutoridad: null
+      firmaAutoridad: isEditingParteId ? (partes.find(p => p.id === isEditingParteId)?.firmaAutoridad || null) : null
     };
 
-    guardarParteEF(nuevoParte);
-    setSignedParte(nuevoParte);
-    setSuccessMsg(
-      huboClase === 'Sí' 
-        ? "¡Parte firmado y registrado en el Libro de Temas!" 
-        : "¡Parte registrado como CLASE SUSPENDIDA con firma digital!"
-    );
+    if (isEditingParteId) {
+      actualizarParteEF(isEditingParteId, nuevoParte);
+      setSuccessMsg("¡Parte diario actualizado con éxito!");
+      
+      setTimeout(() => {
+        setIsEditingParteId(null);
+        setSelectedCurso(null);
+      }, 3000);
+    } else {
+      guardarParteEF(nuevoParte);
+      setSignedParte(nuevoParte);
+      setSuccessMsg(
+        huboClase === 'Sí' 
+          ? "¡Parte firmado y registrado en el Libro de Temas!" 
+          : "¡Parte registrado como CLASE SUSPENDIDA con firma digital!"
+      );
 
-    setTimeout(() => {
-      setSelectedCurso(null);
-    }, 4500);
+      setTimeout(() => {
+        setSelectedCurso(null);
+      }, 4500);
+    }
   };
 
   return (
@@ -304,6 +344,83 @@ const DocenteAsistencia = () => {
               </div>
             )}
           </div>
+
+          {/* Historial de Partes Entregados */}
+          <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
+            <h2 className="text-xl font-bold text-slate-850 font-display mb-4">Historial de Partes Entregados</h2>
+            <p className="text-slate-500 text-xs mb-6 font-semibold">Listado de partes cargados y firmados por usted para sus cursos asignados. Permite editar los datos o eliminar registros.</p>
+
+            {misPartesEntregados.length === 0 ? (
+              <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                <p className="text-xs text-slate-400 font-bold">No registra partes diarios entregados en este período.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto font-sans">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold uppercase">
+                      <th className="py-3 px-3">Curso</th>
+                      <th className="py-3 px-3">Fecha</th>
+                      <th className="py-3 px-3">Horario</th>
+                      <th className="py-3 px-3 text-center">Clase N°</th>
+                      <th className="py-3 px-3">Tema Abordado</th>
+                      <th className="py-3 px-3 text-center">Presentes</th>
+                      <th className="py-3 px-3 text-center">Ausentes</th>
+                      <th className="py-3 px-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {misPartesEntregados.map((p) => {
+                      const cantidadPresentes = Object.values(p.asistencia || {}).filter(a => a === 'Presente').length;
+                      const cantidadAusentes = Object.values(p.asistencia || {}).filter(a => a === 'Ausente').length;
+                      
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
+                          <td className="py-3 px-3 font-extrabold text-slate-900">{p.curso}</td>
+                          <td className="py-3 px-3 font-bold font-mono text-slate-750">
+                            {new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-AR')}
+                          </td>
+                          <td className="py-3 px-3 text-slate-500 font-semibold">{p.horario}</td>
+                          <td className="py-3 px-3 font-bold text-slate-600 text-center">{p.claseNum || '-'}</td>
+                          <td className="py-3 px-3 text-slate-600 max-w-xs truncate" title={p.temaAbordado}>{p.temaAbordado}</td>
+                          <td className="py-3 px-3 text-center">
+                            <span className="inline-block bg-accent-50 text-accent-700 px-2 py-0.5 rounded-lg border border-accent-200 font-bold">
+                              {cantidadPresentes}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <span className="inline-block bg-red-50 text-red-700 px-2 py-0.5 rounded-lg border border-red-200 font-bold">
+                              {cantidadAusentes}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditParteClick(p)}
+                                className="p-1.5 text-primary-500 hover:text-primary-750 hover:bg-primary-500/10 rounded-lg transition-all cursor-pointer"
+                                title="Editar Parte"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteParteClick(p.id)}
+                                className="p-1.5 text-red-500 hover:text-red-750 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                                title="Eliminar Registro"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         // PANTALLA 2: Formulario del Parte
@@ -314,11 +431,16 @@ const DocenteAsistencia = () => {
               <span className="text-[10px] font-bold text-primary-600 bg-primary-500/10 border border-primary-500/20 px-2.5 py-0.5 rounded-full uppercase">
                 Parte e Inyección en Libro de Temas
               </span>
-              <h2 className="text-2xl font-bold text-slate-900 font-display mt-1.5">Confección de Clase: {selectedCurso}</h2>
+              <h2 className="text-2xl font-bold text-slate-900 font-display mt-1.5">
+                {isEditingParteId ? `Edición de Clase: ${selectedCurso}` : `Confección de Clase: ${selectedCurso}`}
+              </h2>
             </div>
             <button
-              onClick={() => setSelectedCurso(null)}
-              className="text-xs text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 transition-all cursor-pointer font-bold"
+              onClick={() => {
+                setSelectedCurso(null);
+                setIsEditingParteId(null);
+              }}
+              className="text-xs text-slate-650 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 transition-all cursor-pointer font-bold"
             >
               Cancelar
             </button>
@@ -683,13 +805,19 @@ const DocenteAsistencia = () => {
             <button
               type="submit"
               className={`w-full text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer uppercase tracking-wider text-xs ${
-                huboClase === 'Sí' 
-                  ? 'bg-primary-500 hover:bg-primary-600 shadow-primary-500/10' 
-                  : 'bg-red-500 hover:bg-red-600 shadow-red-500/10'
+                isEditingParteId
+                  ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/10'
+                  : huboClase === 'Sí' 
+                    ? 'bg-primary-500 hover:bg-primary-600 shadow-primary-500/10' 
+                    : 'bg-red-500 hover:bg-red-600 shadow-red-500/10'
               }`}
             >
               <FileSignature size={18} />
-              {huboClase === 'Sí' ? 'Firmar y Registrar en Libro de Temas' : 'Firmar Acta de Clase Suspendida'}
+              {isEditingParteId 
+                ? 'Guardar Cambios y Actualizar Libro'
+                : huboClase === 'Sí' 
+                  ? 'Firmar y Registrar en Libro de Temas' 
+                  : 'Firmar Acta de Clase Suspendida'}
             </button>
           </form>
 

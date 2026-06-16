@@ -120,6 +120,15 @@ const PreceptorDashboard = () => {
     return dias;
   }, [selectedMes, claseDiasSemana]);
 
+  // Calcular clases suspendidas en el mes para el curso seleccionado
+  const clasesSuspendidas = useMemo(() => {
+    return partes.filter(p => 
+      p.curso === selectedCurso && 
+      p.fecha.split('-')[1] === selectedMes && 
+      p.huboClase === 'No'
+    ).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  }, [partes, selectedCurso, selectedMes]);
+
   // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso)
   const alumnosRegulares = useMemo(() => {
     return alumnos
@@ -510,11 +519,20 @@ const PreceptorDashboard = () => {
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
                         <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
                         <th className="py-3 px-2 font-mono text-slate-400">DNI</th>
-                        {diasClaseMes.map(d => (
-                          <th key={d.dateStr} className="py-3 px-1.5 text-center font-mono font-bold text-slate-500 select-none min-w-[50px]">
-                            {d.label}
-                          </th>
-                        ))}
+                        {diasClaseMes.map(d => {
+                          const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
+                          const noHuboClase = parte && parte.huboClase === 'No';
+                          return (
+                            <th 
+                              key={d.dateStr} 
+                              className={`py-3 px-1.5 text-center font-mono font-bold select-none min-w-[50px] ${
+                                noHuboClase ? 'bg-red-50 text-red-700 border-x border-red-200' : 'text-slate-500'
+                              }`}
+                            >
+                              {d.label}
+                            </th>
+                          );
+                        })}
                         <th className="py-3 px-3 text-center bg-slate-100 text-slate-700 font-bold border-l border-slate-200">Pres.</th>
                         <th className="py-3 px-3 text-center bg-slate-100 text-slate-700 font-bold">Aus.</th>
                         <th className="py-3 px-3 text-right bg-slate-100 text-primary-500 font-extrabold">% Asist.</th>
@@ -536,17 +554,35 @@ const PreceptorDashboard = () => {
                             <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
                             
                             {diasClaseMes.map(d => {
+                              const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
+                              const noHuboClase = parte && parte.huboClase === 'No';
                               const state = getAsistenciaEstado(al.dni, d.dateStr);
                               return (
-                                <td key={d.dateStr} className="py-3 px-1.5 text-center font-bold">
-                                  {state === 'Presente' && (
-                                    <span className="inline-block w-6 h-6 rounded bg-accent-50 text-accent-600 border border-accent-200 text-center leading-6 text-[10px] font-extrabold">P</span>
-                                  )}
-                                  {state === 'Ausente' && (
-                                    <span className="inline-block w-6 h-6 rounded bg-red-50 text-red-600 border border-red-200 text-center leading-6 text-[10px] font-extrabold">A</span>
-                                  )}
-                                  {state === '-' && (
-                                    <span className="text-slate-300 text-center leading-6 font-normal">-</span>
+                                <td 
+                                  key={d.dateStr} 
+                                  className={`py-3 px-1.5 text-center font-bold ${
+                                    noHuboClase ? 'bg-red-50/50 border-x border-red-100' : ''
+                                  }`}
+                                >
+                                  {noHuboClase ? (
+                                    <span 
+                                      className="inline-block w-6 h-6 rounded bg-red-100 text-red-700 border border-red-200 text-center leading-6 text-[10px] font-extrabold cursor-help"
+                                      title={`Clase Suspendida: ${parte.motivoSuspension || 'Sin especificar'}`}
+                                    >
+                                      S
+                                    </span>
+                                  ) : (
+                                    <>
+                                      {state === 'Presente' && (
+                                        <span className="inline-block w-6 h-6 rounded bg-accent-50 text-accent-600 border border-accent-200 text-center leading-6 text-[10px] font-extrabold">P</span>
+                                      )}
+                                      {state === 'Ausente' && (
+                                        <span className="inline-block w-6 h-6 rounded bg-red-50 text-red-600 border border-red-200 text-center leading-6 text-[10px] font-extrabold">A</span>
+                                      )}
+                                      {state === '-' && (
+                                        <span className="text-slate-300 text-center leading-6 font-normal">-</span>
+                                      )}
+                                    </>
                                   )}
                                 </td>
                               );
@@ -760,6 +796,53 @@ const PreceptorDashboard = () => {
                 </p>
               </div>
             </div>
+
+            {/* Registro de Clases Suspendidas del Mes */}
+            {clasesSuspendidas.length > 0 && (
+              <div className="glass-panel rounded-3xl p-6 border border-red-200 shadow-lg bg-red-50/10 animate-fade-in">
+                <div className="flex items-center gap-2 mb-4 border-b border-red-100 pb-3">
+                  <AlertCircle className="text-red-500" size={20} />
+                  <h3 className="text-lg font-bold text-red-800 font-display">Clases Suspendidas - Registro de Motivos</h3>
+                </div>
+                <div className="overflow-x-auto font-sans">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-red-200 bg-red-50 text-red-700 font-bold">
+                        <th className="py-2.5 px-3 w-32">Fecha</th>
+                        <th className="py-2.5 px-3 w-24">Clase N°</th>
+                        <th className="py-2.5 px-3 w-48">Docente</th>
+                        <th className="py-2.5 px-3">Motivo de Suspensión</th>
+                        <th className="py-2.5 px-3 w-40 text-center">Firma Digital</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-100 text-slate-700">
+                      {clasesSuspendidas.map((clase) => (
+                        <tr key={clase.id} className="hover:bg-red-50/30">
+                          <td className="py-2.5 px-3 font-mono font-bold text-red-750">
+                            {clase.dia || clase.fecha.split('-')[2]} de {clase.mes || 'Mayo'}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono font-bold">
+                            #{clase.claseNum || '1'}
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold">
+                            {clase.docenteNombre}
+                          </td>
+                          <td className="py-2.5 px-3 font-bold text-red-800 italic">
+                            {clase.motivoSuspension || "Licencia Médica"}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="inline-block bg-red-100 text-red-800 text-[9px] font-bold px-2 py-0.5 rounded border border-red-200">
+                              FIRMADO DOCENTE ✔
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 

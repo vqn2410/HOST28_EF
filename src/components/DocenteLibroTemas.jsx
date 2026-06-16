@@ -88,10 +88,18 @@ const DocenteLibroTemas = () => {
       d === 1 ? 'Lunes' : d === 2 ? 'Martes' : d === 3 ? 'Miércoles' : d === 4 ? 'Jueves' : 'Viernes'
     ).join(' y ');
 
+    // Buscar preceptor asignado al curso en la lista de usuarios
+    const preceptorObj = usuarios.find(
+      u => u.rol === "Preceptor" && u.cursosAsignados?.includes(selectedCurso)
+    );
+    const preceptorNombre = preceptorObj 
+      ? `${preceptorObj.nombre} ${preceptorObj.apellido}`
+      : "Sin asignar";
+
     return {
       profesor: docenteNombre,
       situacion: situacion,
-      preceptor: "Javier Martínez",
+      preceptor: preceptorNombre,
       turno: config ? config.turno : (selectedCurso.endsWith('1°') ? 'Mañana' : 'Tarde'),
       horario: config ? config.horario : (selectedCurso.endsWith('1°') ? '08:00 - 09:30' : '13:30 - 15:00'),
       dias: diasLabel

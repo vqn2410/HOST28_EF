@@ -175,3 +175,8 @@ h1, h2, h3, .font-display {
   }
 }
 
+/* Soporte para iPhone bottom notch (safe-area-inset-bottom) */
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+}
+

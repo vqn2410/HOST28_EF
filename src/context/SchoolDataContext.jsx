@@ -430,6 +430,26 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const actualizarParteEF = async (parteId, datosActualizados) => {
+    try {
+      await setDoc(doc(db, "partes", parteId), datosActualizados, { merge: true });
+      setPartes((prev) => prev.map((p) => (p.id === parteId ? { ...p, ...datosActualizados } : p)));
+    } catch (error) {
+      console.error("Error al actualizar el parte en Firebase:", error);
+      setPartes((prev) => prev.map((p) => (p.id === parteId ? { ...p, ...datosActualizados } : p)));
+    }
+  };
+
+  const eliminarParteEF = async (parteId) => {
+    try {
+      await deleteDoc(doc(db, "partes", parteId));
+      setPartes((prev) => prev.filter((p) => p.id !== parteId));
+    } catch (error) {
+      console.error("Error al eliminar el parte en Firebase:", error);
+      setPartes((prev) => prev.filter((p) => p.id !== parteId));
+    }
+  };
+
   const guardarInforme = async (nuevoInforme) => {
     const id = `inf_${Date.now()}`;
     const informeObj = { id, ...nuevoInforme };
@@ -560,6 +580,8 @@ export const SchoolDataProvider = ({ children }) => {
       actualizarEstudiante,
       eliminarEstudiante,
       guardarParteEF,
+      actualizarParteEF,
+      eliminarParteEF,
       guardarInforme,
       firmarAutoridadParte,
       actualizarCursoConfig,

@@ -6,7 +6,116 @@ import AdminPanel from './components/AdminPanel';
 import PreceptorDashboard from './components/PreceptorDashboard';
 import DocenteDashboard from './components/DocenteDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import { LogOut, Shield, GraduationCap, Calendar, User, Clock } from 'lucide-react';
+import { LogOut, Shield, GraduationCap, Calendar, User, Clock, CalendarCheck, BookOpen, AlertCircle } from 'lucide-react';
+
+const BottomNavbar = ({ currentPath, onNavigate, docenteTab, setDocenteTab }) => {
+  const { user } = useAuth();
+  if (!user) return null;
+
+  const rol = user.rol;
+
+  return (
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-slate-200/80 backdrop-blur-md shadow-lg pb-safe">
+      <div className="flex justify-around items-center py-2 px-3">
+        {rol === "Equipo de Conducción" && (
+          <>
+            <button
+              onClick={() => onNavigate('/admin')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                currentPath === '/admin' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <Shield size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Matrícula</span>
+            </button>
+            <button
+              onClick={() => onNavigate('/asistencia-mensual')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                currentPath === '/asistencia-mensual' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <Calendar size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Asistencia</span>
+            </button>
+            <button
+              onClick={() => onNavigate('/asistencia')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                currentPath === '/asistencia' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <GraduationCap size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Libro Temas</span>
+            </button>
+          </>
+        )}
+
+        {rol === "Preceptor" && (
+          <>
+            <button
+              onClick={() => onNavigate('/admin')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                currentPath === '/admin' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <Shield size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Matrícula</span>
+            </button>
+            <button
+              onClick={() => onNavigate('/asistencia-mensual')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                currentPath === '/asistencia-mensual' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <Calendar size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Asistencia</span>
+            </button>
+          </>
+        )}
+
+        {rol === "Docente" && (
+          <>
+            <button
+              onClick={() => setDocenteTab('asistencia')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                docenteTab === 'asistencia' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <CalendarCheck size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Asistencia</span>
+            </button>
+            <button
+              onClick={() => setDocenteTab('libro-de-temas')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                docenteTab === 'libro-de-temas' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <BookOpen size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Libro Temas</span>
+            </button>
+            <button
+              onClick={() => setDocenteTab('planilla-mensual')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                docenteTab === 'planilla-mensual' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <Calendar size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Planilla</span>
+            </button>
+            <button
+              onClick={() => setDocenteTab('mis-informes')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all active:scale-95 ${
+                docenteTab === 'mis-informes' ? 'text-primary-500' : 'text-slate-500'
+              }`}
+            >
+              <AlertCircle size={20} />
+              <span className="text-[9px] font-bold tracking-tight">Informes</span>
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Navigation = ({ currentPath, onNavigate }) => {
   const { user, logout } = useAuth();
@@ -39,7 +148,7 @@ const Navigation = ({ currentPath, onNavigate }) => {
         </div>
 
         {/* Dynamic Navigation Links based on Role con Colores del Logotipo */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
+        <div className="hidden md:flex flex-wrap items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
           {/* 1. Equipo de Conducción: Acceso total */}
           {user.rol === "Equipo de Conducción" && (
             <>
@@ -148,6 +257,7 @@ const Navigation = ({ currentPath, onNavigate }) => {
 
 const AppContent = () => {
   const { isAuthenticated, user } = useAuth();
+  const [docenteTab, setDocenteTab] = useState('asistencia');
 
   // Limpieza única de localStorage residual para iniciar la aplicación desde 0
   useEffect(() => {
@@ -203,7 +313,7 @@ const AppContent = () => {
         <Navigation currentPath={currentPath} onNavigate={handleNavigate} />
 
         {/* View Switching protected by ProtectedRoute */}
-        <main className="py-6">
+        <main className="py-6 pb-24 md:pb-6">
           {currentPath === '/login' && <Login onNavigate={handleNavigate} />}
 
           {currentPath === '/admin' && (
@@ -232,14 +342,22 @@ const AppContent = () => {
               currentPath="/asistencia"
               onNavigate={handleNavigate}
             >
-              <DocenteDashboard />
+              <DocenteDashboard activeTab={docenteTab} setActiveTab={setDocenteTab} />
             </ProtectedRoute>
           )}
         </main>
       </div>
 
+      {/* Bottom Navigation Bar on Mobile */}
+      <BottomNavbar 
+        currentPath={currentPath} 
+        onNavigate={handleNavigate} 
+        docenteTab={docenteTab} 
+        setDocenteTab={setDocenteTab} 
+      />
+
       {/* Footer Premium en Modo Claro */}
-      <footer className="border-t border-slate-200/80 bg-white py-8 px-6 text-center text-xs text-slate-500 font-sans shadow-inner">
+      <footer className="border-t border-slate-200/80 bg-white py-8 px-6 text-center text-xs text-slate-500 font-sans shadow-inner pb-24 md:pb-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src="/logo.png" className="w-8 h-8 object-contain" alt="Logo Escuela" />

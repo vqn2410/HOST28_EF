@@ -4,14 +4,20 @@ import { useSchoolData } from '../context/SchoolDataContext';
 import DocenteAsistencia from './DocenteAsistencia';
 import DocenteLibroTemas from './DocenteLibroTemas';
 import DocenteInformes from './DocenteInformes';
-import { CalendarCheck, BookOpen, AlertCircle, Award, AlertOctagon, Bell, X } from 'lucide-react';
+import DocentePlanilla from './DocentePlanilla';
+import { CalendarCheck, BookOpen, AlertCircle, Award, AlertOctagon, Bell, X, Calendar } from 'lucide-react';
 
-const DocenteDashboard = () => {
+const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiveTab }) => {
   const { user } = useAuth();
   const { solicitudesFaltantes = [], cursosConfig = {} } = useSchoolData();
-  const [activeTab, setActiveTab] = useState(() => {
+  
+  const [localActiveTab, setLocalActiveTab] = useState(() => {
     return user.rol === "Equipo de Conducción" ? 'libro-de-temas' : 'asistencia';
   });
+
+  const activeTab = propActiveTab !== undefined ? propActiveTab : localActiveTab;
+  const setActiveTab = propSetActiveTab !== undefined ? propSetActiveTab : setLocalActiveTab;
+
   const [showPendingModal, setShowPendingModal] = useState(false);
 
   const esDirectivo = user.rol === "Equipo de Conducción";
@@ -75,7 +81,7 @@ const DocenteDashboard = () => {
       </div>
 
       {/* Navegación por Pestañas / Tab Menu */}
-      <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
+      <div className="hidden md:flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
         <button
           onClick={() => setActiveTab('asistencia')}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
@@ -101,6 +107,18 @@ const DocenteDashboard = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('planilla-mensual')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'planilla-mensual'
+              ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+              : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+          }`}
+        >
+          <Calendar size={16} />
+          Planilla Mensual
+        </button>
+
+        <button
           onClick={() => setActiveTab('mis-informes')}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'mis-informes'
@@ -117,6 +135,7 @@ const DocenteDashboard = () => {
       <div className="pt-2 animate-fade-in">
         {activeTab === 'asistencia' && <DocenteAsistencia />}
         {activeTab === 'libro-de-temas' && <DocenteLibroTemas />}
+        {activeTab === 'planilla-mensual' && <DocentePlanilla />}
         {activeTab === 'mis-informes' && <DocenteInformes />}
       </div>
 
