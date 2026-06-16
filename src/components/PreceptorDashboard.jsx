@@ -69,14 +69,14 @@ const PreceptorDashboard = () => {
     const defaultCurso = user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
       ? user.cursosAsignados[0]
       : "1°1°";
-    return defaultCurso.endsWith('1°') ? 'Mañana' : 'Tarde';
+    return defaultCurso.endsWith('1°') ? 'Tarde' : 'Mañana';
   });
 
   // Escuchar y corregir el curso seleccionado si no coincide con los visibles
   React.useEffect(() => {
     if (cursosVisibles.length > 0 && !cursosVisibles.includes(selectedCurso)) {
       setSelectedCurso(cursosVisibles[0]);
-      setSelectedTurno(cursosVisibles[0].endsWith('1°') ? 'Mañana' : 'Tarde');
+      setSelectedTurno(cursosVisibles[0].endsWith('1°') ? 'Tarde' : 'Mañana');
     }
   }, [cursosVisibles, selectedCurso]);
 
@@ -95,7 +95,7 @@ const PreceptorDashboard = () => {
   // Regla de días de clase de EF: se leen dinámicamente de la configuración administrativa
   const claseDiasSemana = useMemo(() => {
     const config = cursosConfig[selectedCurso];
-    return config ? config.dias : (selectedCurso.endsWith('1°') ? [1, 3] : [2, 4]);
+    return config ? config.dias : (selectedCurso.endsWith('1°') ? [2, 4] : [1, 3]);
   }, [cursosConfig, selectedCurso]);
 
   // Calcular todos los días del mes seleccionado en los que hay clase de EF (para el año 2026)
@@ -122,30 +122,54 @@ const PreceptorDashboard = () => {
 
   // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso)
   const alumnosRegulares = useMemo(() => {
-    return alumnos.filter(al => al.cursoEF === selectedCurso && !al.noCursaEF);
+    return alumnos
+      .filter(al => al.cursoEF === selectedCurso && !al.noCursaEF)
+      .sort((a, b) => {
+        const isExternoA = a.cursoOrigen !== selectedCurso;
+        const isExternoB = b.cursoOrigen !== selectedCurso;
+
+        if (isExternoA && !isExternoB) return 1;
+        if (!isExternoA && isExternoB) return -1;
+
+        const nombreA = (a.nombre || '').trim().toLowerCase();
+        const nombreB = (b.nombre || '').trim().toLowerCase();
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+      });
   }, [alumnos, selectedCurso]);
 
   // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados)
   const alumnosReasignados = useMemo(() => {
-    return alumnos.filter(al => 
-      al.cursoOrigen === selectedCurso && 
-      al.cursoEF !== selectedCurso &&
-      !al.noCursaEF
-    );
+    return alumnos
+      .filter(al => 
+        al.cursoOrigen === selectedCurso && 
+        al.cursoEF !== selectedCurso &&
+        !al.noCursaEF
+      )
+      .sort((a, b) => {
+        const nombreA = (a.nombre || '').trim().toLowerCase();
+        const nombreB = (b.nombre || '').trim().toLowerCase();
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+      });
   }, [alumnos, selectedCurso]);
 
   // 3. Filtrar Alumnos Exceptuados de EF
   const alumnosExceptuados = useMemo(() => {
-    return alumnos.filter(al => 
-      al.cursoOrigen === selectedCurso && 
-      !!al.noCursaEF
-    );
+    return alumnos
+      .filter(al => 
+        al.cursoOrigen === selectedCurso && 
+        !!al.noCursaEF
+      )
+      .sort((a, b) => {
+        const nombreA = (a.nombre || '').trim().toLowerCase();
+        const nombreB = (b.nombre || '').trim().toLowerCase();
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+      });
   }, [alumnos, selectedCurso]);
 
   // Días de clase de EF para el curso de la solicitud
   const solCursoDiasSemana = useMemo(() => {
     const config = cursosConfig[solCurso];
-    return config ? config.dias : (solCurso.endsWith('1°') ? [1, 3] : [2, 4]);
+    return config ? config.dias : (solCurso.endsWith('1°') ? [2, 4] : [1, 3]);
   }, [cursosConfig, solCurso]);
 
   // Calcular fechas de clase del mes para el curso seleccionado que NO tienen parte registrado ni solicitudes pendientes
@@ -392,13 +416,43 @@ const PreceptorDashboard = () => {
         
         {activeTab === 'planilla' && (
           <div className="space-y-8">
+            {/* Botones de Selección de Cursos Disponibles */}
+            <div className="glass-panel rounded-2xl p-5 border border-slate-200 shadow-md bg-white space-y-4">
+              <div className="flex items-center gap-2 text-primary-500 font-extrabold text-sm uppercase tracking-wide">
+                <FileSignature size={18} />
+                <span>Cursos Disponibles:</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+                {cursosVisibles.map(c => {
+                  const isSelected = selectedCurso === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCurso(c);
+                        setSelectedTurno(c.endsWith('1°') ? 'Tarde' : 'Mañana');
+                      }}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase transition-all shadow-xs border cursor-pointer active:scale-95 ${
+                        isSelected
+                          ? 'bg-primary-500 border-primary-500 text-white shadow-md'
+                          : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      Curso {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Barra de Filtros Premium Light */}
             <div className="glass-panel rounded-2xl p-5 border border-slate-200 shadow-md flex flex-wrap items-center gap-5 justify-between bg-white">
               <div className="flex items-center gap-2 text-primary-500 font-bold text-sm uppercase tracking-wide">
                 <Filter size={18} />
-                <span>Filtros de Folio:</span>
+                <span>Otros Filtros de Folio:</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 grow max-w-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 grow max-w-2xl">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mes de Consulta</label>
                   <select
@@ -407,21 +461,6 @@ const PreceptorDashboard = () => {
                     className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none transition-all cursor-pointer font-semibold"
                   >
                     {MESES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Curso EF Cursada</label>
-                  <select
-                    value={selectedCurso}
-                    onChange={e => {
-                      const cursoVal = e.target.value;
-                      setSelectedCurso(cursoVal);
-                      setSelectedTurno(cursoVal.endsWith('1°') ? 'Mañana' : 'Tarde');
-                    }}
-                    className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-850 focus:outline-none transition-all font-extrabold cursor-pointer"
-                  >
-                    {cursosVisibles.map(c => <option key={c} value={c}>Curso {c}</option>)}
                   </select>
                 </div>
 
@@ -559,6 +598,7 @@ const PreceptorDashboard = () => {
                         <th className="py-3 px-3 font-bold text-yellow-650">Curso de EF Destino</th>
                         <th className="py-3 px-3 font-bold text-slate-600">Turno y Horario</th>
                         <th className="py-3 px-3 font-bold text-slate-600">Días de Cursada</th>
+                        <th className="py-3 px-3 font-bold text-slate-600 w-80">Asistencia Diaria (Clases EF)</th>
                         <th className="py-3 px-3 text-center bg-slate-100 text-slate-700 font-bold">Pres.</th>
                         <th className="py-3 px-3 text-center bg-slate-100 text-slate-700 font-bold">Aus.</th>
                         <th className="py-3 px-3 text-right bg-slate-100 text-primary-500 font-extrabold">% Asist.</th>
@@ -568,12 +608,49 @@ const PreceptorDashboard = () => {
                       {alumnosReasignados.map((al) => {
                         const stats = calcularEstadisticasAlumnoReasignado(al);
                         const cursoConfig = cursosConfig[al.cursoEF];
-                        const diasArray = cursoConfig ? cursoConfig.dias : (al.cursoEF.endsWith('1°') ? [1, 3] : [2, 4]);
+                        const diasArray = cursoConfig ? cursoConfig.dias : (al.cursoEF.endsWith('1°') ? [2, 4] : [1, 3]);
                         const diasLabel = diasArray.map(d => 
                           d === 1 ? 'Lunes' : d === 2 ? 'Martes' : d === 3 ? 'Miércoles' : d === 4 ? 'Jueves' : 'Viernes'
                         ).join(' y ');
                         const horarioLabel = cursoConfig ? cursoConfig.horario : "13:30 - 15:00";
                         const turnoLabel = cursoConfig ? cursoConfig.turno : "Tarde";
+
+                        // Calcular detalle diario
+                        const getDetalleAsistenciaReasignado = (alumno) => {
+                          const cEF = alumno.cursoEF;
+                          const config = cursosConfig[cEF];
+                          const diasSemana = config ? config.dias : (cEF.endsWith('1°') ? [2, 4] : [1, 3]);
+
+                          const year = 2026;
+                          const monthIndex = parseInt(selectedMes) - 1;
+                          const date = new Date(year, monthIndex, 1);
+                          const dias = [];
+
+                          while (date.getMonth() === monthIndex) {
+                            const dayOfWeek = date.getDay();
+                            if (diasSemana.includes(dayOfWeek)) {
+                              const dayNum = String(date.getDate()).padStart(2, '0');
+                              dias.push({
+                                dateStr: `${year}-${selectedMes}-${dayNum}`,
+                                label: `${date.getDate()}/${selectedMes}`
+                              });
+                            }
+                            date.setDate(date.getDate() + 1);
+                          }
+
+                          return dias.map(d => {
+                            const parte = partes.find(p => p.fecha === d.dateStr && p.curso === cEF);
+                            if (!parte) return { label: d.label, state: '-', dateStr: d.dateStr };
+                            if (parte.huboClase === 'No') return { label: d.label, state: 'Susp.', dateStr: d.dateStr };
+                            return { 
+                              label: d.label, 
+                              state: parte.asistencia[alumno.dni] || '-', 
+                              dateStr: d.dateStr 
+                            };
+                          });
+                        };
+
+                        const detalleAsist = getDetalleAsistenciaReasignado(al);
 
                         return (
                           <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
@@ -588,6 +665,24 @@ const PreceptorDashboard = () => {
                               {turnoLabel} ({horarioLabel})
                             </td>
                             <td className="py-3 px-3 text-slate-500 font-semibold">{diasLabel}</td>
+                            <td className="py-3 px-3">
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {detalleAsist.map(det => (
+                                  <span 
+                                    key={det.dateStr} 
+                                    title={`Fecha: ${det.label} - Asistencia: ${det.state}`}
+                                    className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-mono font-bold border ${
+                                      det.state === 'Presente' ? 'bg-accent-50 text-accent-700 border-accent-200' :
+                                      det.state === 'Ausente' ? 'bg-red-50 text-red-700 border-red-200' :
+                                      det.state === 'Susp.' ? 'bg-slate-100 text-slate-450 border-slate-200 line-through' :
+                                      'bg-slate-50 text-slate-350 border-slate-200'
+                                    }`}
+                                  >
+                                    {det.label}:{det.state === 'Presente' ? 'P' : det.state === 'Ausente' ? 'A' : det.state === 'Susp.' ? 'S' : '-'}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
                             <td className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold">{stats.presentes}</td>
                             <td className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
                             <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${

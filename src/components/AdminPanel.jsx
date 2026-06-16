@@ -10,7 +10,9 @@ const AdminPanel = () => {
   // Estados para el modo de edición
   const [editingUsrDni, setEditingUsrDni] = useState(null);
   const [editingEstDni, setEditingEstDni] = useState(null);
-  const [activeTab, setActiveTab] = useState('usuarios_carga');
+  const [activeTab, setActiveTab] = useState(() => {
+    return user?.rol === 'Preceptor' ? 'estudiantes_carga' : 'usuarios_carga';
+  });
 
   // Estados para la carga del CSV en tiempo real
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -152,7 +154,8 @@ const AdminPanel = () => {
       const existingConfig = cursosConfig[initialCurso];
       if (existingConfig) {
         const dias = existingConfig.dias || [];
-        const turnoCalculado = determinarTurno(initialCurso);
+        const schoolTurno = determinarTurno(initialCurso);
+        const turnoCalculado = schoolTurno === 'Mañana' ? 'Tarde' : 'Mañana';
         const defaultHorario = turnoCalculado === 'Mañana' ? '08:00 - 09:30' : '13:30 - 15:00';
         const horariosPorDia = {
           1: defaultHorario,
@@ -210,7 +213,8 @@ const AdminPanel = () => {
 
   // Manejar el cambio de curso en la configuración curricular para auto-calcular el turno y el horario estimado
   const handleCursoConfigChange = (cursoValue) => {
-    const turnoCalculado = determinarTurno(cursoValue);
+    const schoolTurno = determinarTurno(cursoValue);
+    const turnoCalculado = schoolTurno === 'Mañana' ? 'Tarde' : 'Mañana';
     const defaultHorario = turnoCalculado === 'Mañana' ? '08:00 - 09:30' : '13:30 - 15:00';
     
     const existingConfig = cursosConfig?.[cursoValue];
@@ -244,7 +248,7 @@ const AdminPanel = () => {
       setCursoConfigForm({
         curso: cursoValue,
         docenteDni: docentesDisponibles[0]?.dni || '',
-        dias: [1, 3],
+        dias: schoolTurno === 'Mañana' ? [2, 4] : [1, 3],
         horariosPorDia: {
           1: defaultHorario,
           2: defaultHorario,
@@ -713,14 +717,21 @@ const AdminPanel = () => {
     }));
   };
 
-  const tabs = [
-    { id: 'usuarios_carga', label: 'Carga de Usuarios', icon: UserPlus, color: 'text-primary-500' },
-    { id: 'usuarios_lista', label: 'Personal Registrado', icon: Users, color: 'text-primary-500' },
-    { id: 'estudiantes_carga', label: 'Matrícula Estudiantes', icon: GraduationCap, color: 'text-accent-500' },
-    { id: 'estudiantes_lista', label: 'Estudiantes Matriculados', icon: BookOpen, color: 'text-accent-500' },
-    { id: 'cursos_carga', label: 'Asignación Curricular EF', icon: CalendarRange, color: 'text-yellow-600' },
-    { id: 'cursos_lista', label: 'Cursos de Educación Física', icon: CalendarRange, color: 'text-yellow-600' }
-  ];
+  const tabs = useMemo(() => {
+    const allTabs = [
+      { id: 'usuarios_carga', label: 'Carga de Usuarios', icon: UserPlus, color: 'text-primary-500' },
+      { id: 'usuarios_lista', label: 'Personal Registrado', icon: Users, color: 'text-primary-500' },
+      { id: 'estudiantes_carga', label: 'Matrícula Estudiantes', icon: GraduationCap, color: 'text-accent-500' },
+      { id: 'estudiantes_lista', label: 'Estudiantes Matriculados', icon: BookOpen, color: 'text-accent-500' },
+      { id: 'cursos_carga', label: 'Asignación Curricular EF', icon: CalendarRange, color: 'text-yellow-600' },
+      { id: 'cursos_lista', label: 'Cursos de Educación Física', icon: CalendarRange, color: 'text-yellow-600' }
+    ];
+
+    if (user?.rol === 'Preceptor') {
+      return allTabs.filter(tab => tab.id === 'estudiantes_carga' || tab.id === 'estudiantes_lista');
+    }
+    return allTabs;
+  }, [user]);
 
   return (
     <div className="space-y-8 py-6 max-w-7xl mx-auto px-4">

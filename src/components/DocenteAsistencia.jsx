@@ -40,12 +40,17 @@ const DocenteAsistencia = () => {
     );
   }, [cursosConfig, user.dni]);
 
-  // Filtrar alumnos asignados: todos los que pertenezcan a este curso o realicen EF en él, ordenados alfabéticamente
   const alumnosFiltrados = useMemo(() => {
     if (!selectedCurso) return [];
     return alumnos
       .filter(al => al.cursoOrigen === selectedCurso || al.cursoEF === selectedCurso)
       .sort((a, b) => {
+        const isExternoA = a.cursoOrigen !== selectedCurso;
+        const isExternoB = b.cursoOrigen !== selectedCurso;
+
+        if (isExternoA && !isExternoB) return 1;
+        if (!isExternoA && isExternoB) return -1;
+
         const nombreA = (a.nombre || '').trim().toLowerCase();
         const nombreB = (b.nombre || '').trim().toLowerCase();
         return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
@@ -83,7 +88,8 @@ const DocenteAsistencia = () => {
     setObservaciones('');
     setTemaAbordado('');
     
-    const turnoDetectado = (curso === "3°C" || curso === "3°B" || curso.endsWith('2°') || curso.endsWith('3°')) ? "Tarde" : "Mañana";
+    const schoolTurno = curso.endsWith('1°') ? 'Mañana' : 'Tarde';
+    const turnoDetectado = schoolTurno === 'Mañana' ? 'Tarde' : 'Mañana';
     const config = cursosConfig[curso];
     const horarioEstimado = config ? config.horario : (turnoDetectado === "Mañana" ? "08:00 - 09:30" : "13:30 - 15:00");
     setHorario(horarioEstimado);
