@@ -24,7 +24,7 @@ const DocenteInformes = () => {
 
   const estudiantesElegibles = useMemo(() => {
     return alumnos.filter(al => cursosAsignados.includes(al.cursoEF))
-      .sort((a, b) => a.apellido.localeCompare(b.apellido));
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [alumnos, cursosAsignados]);
 
   // Filtrar estudiantes elegibles que no estén ya seleccionados
@@ -59,10 +59,10 @@ const DocenteInformes = () => {
     const nuevoInforme = {
       estudiantes: selectedStudents.map(est => ({
         dni: est.dni,
-        nombre: `${est.apellido}, ${est.nombre}`
+        nombre: est.nombre
       })),
       estudianteDni: selectedStudents.map(est => est.dni).join(', '),
-      estudianteNombre: selectedStudents.map(est => `${est.apellido}, ${est.nombre}`).join('; '),
+      estudianteNombre: selectedStudents.map(est => est.nombre).join('; '),
       curso: selectedStudents[0]?.cursoEF || '',
       titulo: titulo.trim(),
       contenido: contenido.trim(),
@@ -130,7 +130,7 @@ const DocenteInformes = () => {
                 <option value="">Seleccione estudiante para agregar...</option>
                 {estudiantesDisponibles.map(el => (
                   <option key={el.dni} value={el.dni}>
-                    {el.apellido}, {el.nombre} ({el.cursoEF} EF - {el.turno})
+                    {el.nombre} ({el.cursoEF} EF - {el.turno})
                   </option>
                 ))}
               </select>
@@ -143,7 +143,7 @@ const DocenteInformes = () => {
                       key={student.dni} 
                       className="inline-flex items-center gap-1.5 bg-primary-500/10 text-primary-700 border border-primary-500/25 px-2.5 py-1 rounded-xl text-[10px] font-bold animate-pulse-once"
                     >
-                      <span>{student.apellido}, {student.nombre}</span>
+                      <span>{student.nombre}</span>
                       <button 
                         type="button" 
                         onClick={() => setSelectedStudents(prev => prev.filter(s => s.dni !== student.dni))}

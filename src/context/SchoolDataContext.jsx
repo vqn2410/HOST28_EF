@@ -7,30 +7,30 @@ const SchoolDataContext = createContext(null);
 // Alumnos Semilla
 const INITIAL_ALUMNOS = [
   // 1°1° - Turno Mañana
-  { dni: "10001", apellido: "Álvarez", nombre: "Martín", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
-  { dni: "10002", apellido: "Benítez", nombre: "Camila", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
-  { dni: "10003", apellido: "Cardozo", nombre: "Lucas", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
-  { dni: "10004", apellido: "Díaz", nombre: "Florencia", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
+  { dni: "10001", nombre: "Álvarez, Martín", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
+  { dni: "10002", nombre: "Benítez, Camila", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
+  { dni: "10003", nombre: "Cardozo, Lucas", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
+  { dni: "10004", nombre: "Díaz, Florencia", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
   
   // 1°2° - Turno Tarde
-  { dni: "10101", apellido: "Herrera", nombre: "Julieta", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°" },
-  { dni: "10102", apellido: "Giménez", nombre: "Ignacio", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°" },
+  { dni: "10101", nombre: "Herrera, Julieta", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°" },
+  { dni: "10102", nombre: "Giménez, Ignacio", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°" },
   
   // 2°1° - Turno Mañana
-  { dni: "20001", apellido: "Esquivel", nombre: "Facundo", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°" },
-  { dni: "20002", apellido: "Flores", nombre: "Martina", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°" },
+  { dni: "20001", nombre: "Esquivel, Facundo", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°" },
+  { dni: "20002", nombre: "Flores, Martina", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°" },
   
   // Alumnos externos asignados a Educación Física en un curso diferente
-  { dni: "20003", apellido: "Gómez", nombre: "Alan", cursoOrigen: "2°2°", turno: "Tarde", cursoEF: "1°1°" },
-  { dni: "30001", apellido: "López", nombre: "Sofía", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "1°1°" },
+  { dni: "20003", nombre: "Gómez, Alan", cursoOrigen: "2°2°", turno: "Tarde", cursoEF: "1°1°" },
+  { dni: "30001", nombre: "López, Sofía", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "1°1°" },
   
   // 3°2° - Turno Tarde
-  { dni: "30002", apellido: "Rodríguez", nombre: "Mateo", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°" },
-  { dni: "30003", apellido: "Sánchez", nombre: "Valentina", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°" },
+  { dni: "30002", nombre: "Rodríguez, Mateo", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°" },
+  { dni: "30003", nombre: "Sánchez, Valentina", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°" },
 
   // 6°1° - Turno Mañana
-  { dni: "60001", apellido: "Ortega", nombre: "Gonzalo", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°" },
-  { dni: "60002", apellido: "Peralta", nombre: "Agostina", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°" }
+  { dni: "60001", nombre: "Ortega, Gonzalo", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°" },
+  { dni: "60002", nombre: "Peralta, Agostina", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°" }
 ];
 
 // Configuración inicial de Cursos
@@ -340,6 +340,26 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const agregarEstudiantesBatch = async (nuevosEstudiantes) => {
+    const studentObjs = nuevosEstudiantes.map(nuevoEstudiante => ({
+      ...nuevoEstudiante,
+      cursoEF: nuevoEstudiante.cursoEF || nuevoEstudiante.cursoOrigen
+    }));
+    try {
+      await Promise.all(studentObjs.map(studentObj => setDoc(doc(db, "alumnos", studentObj.dni), studentObj)));
+      setAlumnos((prev) => {
+        const prevFiltered = prev.filter(p => !studentObjs.some(s => s.dni === p.dni));
+        return [...prevFiltered, ...studentObjs];
+      });
+    } catch (error) {
+      console.error("Error al agregar estudiantes en lote en Firebase:", error);
+      setAlumnos((prev) => {
+        const prevFiltered = prev.filter(p => !studentObjs.some(s => s.dni === p.dni));
+        return [...prevFiltered, ...studentObjs];
+      });
+    }
+  };
+
   const actualizarEstudiante = async (estudianteDni, datosActualizados) => {
     const studentObj = {
       ...datosActualizados,
@@ -517,6 +537,7 @@ export const SchoolDataProvider = ({ children }) => {
       informes,
       notificaciones,
       agregarEstudiante,
+      agregarEstudiantesBatch,
       actualizarEstudiante,
       eliminarEstudiante,
       guardarParteEF,

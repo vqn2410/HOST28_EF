@@ -511,7 +511,7 @@ const DocenteAsistencia = () => {
                           
                           return (
                             <tr key={al.dni} className="hover:bg-slate-50 text-slate-700">
-                              <td className="py-3 px-4 font-semibold text-slate-800">{al.apellido}, {al.nombre}</td>
+                              <td className="py-3 px-4 font-semibold text-slate-800">{al.nombre}</td>
                               <td className="py-3 px-3 font-mono text-slate-500">{al.dni}</td>
                               <td className="py-3 px-3 font-medium">
                                 {esExterno ? (

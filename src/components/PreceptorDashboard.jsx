@@ -478,7 +478,7 @@ const PreceptorDashboard = () => {
                         return (
                           <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
                             <td className="py-3 px-3 font-bold text-slate-800">
-                              {al.apellido}, {al.nombre}
+                              {al.nombre}
                               {al.cursoOrigen !== selectedCurso && (
                                 <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-1.5 py-0.5 rounded text-[9px] font-bold">
                                   {al.cursoOrigen} (Externo)
@@ -568,7 +568,7 @@ const PreceptorDashboard = () => {
 
                         return (
                           <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                            <td className="py-3 px-3 font-bold text-slate-800">{al.apellido}, {al.nombre}</td>
+                            <td className="py-3 px-3 font-bold text-slate-800">{al.nombre}</td>
                             <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
                             <td className="py-3 px-3">
                               <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[10px] font-bold">
