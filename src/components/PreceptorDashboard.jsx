@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature } from 'lucide-react';
+import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight } from 'lucide-react';
 
 const PreceptorDashboard = () => {
   const { 
@@ -17,8 +17,16 @@ const PreceptorDashboard = () => {
   const { user } = useAuth();
 
   // Navegación de Pestañas
-  const [activeTab, setActiveTab] = useState('planilla'); // 'planilla' | 'solicitudes' | 'informes'
+  const [activeTab, setActiveTab] = useState('planilla'); // 'planilla' | 'solicitudes' | 'informes' | 'partes'
   const [selectedParteDetail, setSelectedParteDetail] = useState(null);
+
+  // Estados para pestaña Partes
+  const [selectedCursoPartes, setSelectedCursoPartes] = useState(() => {
+    return user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
+      ? user.cursosAsignados[0]
+      : "1°1°";
+  });
+  const [selectedMesPartes, setSelectedMesPartes] = useState("Todos"); // "Todos" | "03" | "04" ...
 
 
 
@@ -79,6 +87,40 @@ const PreceptorDashboard = () => {
       setSelectedTurno(cursosVisibles[0].endsWith('1°') ? 'Tarde' : 'Mañana');
     }
   }, [cursosVisibles, selectedCurso]);
+
+  React.useEffect(() => {
+    if (cursosVisibles.length > 0 && !cursosVisibles.includes(selectedCursoPartes)) {
+      setSelectedCursoPartes(cursosVisibles[0]);
+    }
+  }, [cursosVisibles, selectedCursoPartes]);
+
+  const partesFiltrados = useMemo(() => {
+    return partes.filter(p => {
+      const matchCurso = p.curso === selectedCursoPartes;
+      const matchMes = selectedMesPartes === 'Todos' || p.fecha.split('-')[1] === selectedMesPartes;
+      return matchCurso && matchMes;
+    }).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  }, [partes, selectedCursoPartes, selectedMesPartes]);
+
+  const obtenerTotalesParte = (parte) => {
+    let presentes = 0;
+    let ausentes = 0;
+    let sinRegistro = 0;
+
+    const asistencia = parte.asistencia || {};
+    Object.values(asistencia).forEach(val => {
+      if (val === 'Presente') presentes++;
+      else if (val === 'Ausente') ausentes++;
+      else sinRegistro++;
+    });
+
+    return {
+      presentes,
+      ausentes,
+      sinRegistro,
+      total: presentes + ausentes
+    };
+  };
 
   const MESES = [
     { value: "03", label: "Marzo" },
@@ -380,6 +422,18 @@ const PreceptorDashboard = () => {
         >
           <FileText size={16} />
           Actas e Informes
+        </button>
+
+        <button
+          onClick={() => setActiveTab('partes')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'partes'
+              ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+              : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+          }`}
+        >
+          <FileSignature size={16} />
+          Partes de Clase
         </button>
       </div>
 
@@ -1081,6 +1135,158 @@ const PreceptorDashboard = () => {
           </div>
         )}
 
+        {activeTab === 'partes' && (
+          <div className="space-y-8">
+            {/* Botones de Selección de Cursos Disponibles */}
+            <div className="glass-panel rounded-2xl p-5 border border-slate-200 shadow-md bg-white space-y-4">
+              <div className="flex items-center gap-2 text-primary-500 font-extrabold text-sm uppercase tracking-wide">
+                <FileSignature size={18} />
+                <span>Seleccionar Curso para Historial de Partes:</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5">
+                {cursosVisibles.map(c => {
+                  const isSelected = selectedCursoPartes === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCursoPartes(c);
+                      }}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase transition-all shadow-xs border cursor-pointer active:scale-95 ${
+                        isSelected
+                          ? 'bg-primary-500 border-primary-500 text-white shadow-md'
+                          : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      Curso {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Barra de Filtros */}
+            <div className="glass-panel rounded-2xl p-5 border border-slate-200 shadow-md flex flex-wrap items-center gap-5 justify-between bg-white">
+              <div className="flex items-center gap-2 text-primary-500 font-bold text-sm uppercase tracking-wide">
+                <Filter size={18} />
+                <span>Otros Filtros:</span>
+              </div>
+              <div className="w-full sm:w-72">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Filtrar por Mes</label>
+                <select
+                  value={selectedMesPartes}
+                  onChange={e => setSelectedMesPartes(e.target.value)}
+                  className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none transition-all cursor-pointer font-semibold"
+                >
+                  <option value="Todos">Todos los Meses</option>
+                  {MESES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Listado de Partes */}
+            <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-850 font-display flex items-center gap-2">
+                    <span>Partes Disponibles - Curso {selectedCursoPartes}</span>
+                    <span className="text-xs bg-slate-100 border border-slate-200 text-slate-650 font-bold px-2.5 py-0.5 rounded-full">
+                      {partesFiltrados.length} Registros
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Historial y reporte de temas dictados, asistencia y novedades.</p>
+                </div>
+              </div>
+
+              {partesFiltrados.length === 0 ? (
+                <div className="py-12 text-center border border-dashed border-slate-350 rounded-2xl bg-slate-50/50">
+                  <AlertCircle size={32} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-sm font-bold text-slate-500">No hay partes de clase registrados para este curso en el período seleccionado.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {partesFiltrados.map((parte) => {
+                    const totales = obtenerTotalesParte(parte);
+                    const isSuspended = parte.huboClase === 'No';
+                    return (
+                      <div 
+                        key={parte.id} 
+                        className={`glass-panel border rounded-2xl p-5 bg-white shadow-md flex flex-col justify-between transition-all duration-300 hover:shadow-lg relative overflow-hidden group border-slate-200 ${
+                          isSuspended ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-primary-500'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
+                            <div>
+                              <span className="text-[10px] font-mono text-slate-450 font-bold uppercase block">
+                                {new Date(parte.fecha + 'T00:00:00').toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                              </span>
+                              <h3 className="text-base font-bold text-slate-800 font-display mt-1">
+                                {isSuspended ? 'Clase Suspendida' : `Clase N° ${parte.claseNum} • Unidad ${parte.unidad}`}
+                              </h3>
+                            </div>
+                            <span className={`inline-block text-[9px] font-extrabold px-2 py-0.5 rounded uppercase border ${
+                              !isSuspended 
+                                ? 'bg-accent-50 text-accent-700 border-accent-200' 
+                                : 'bg-red-50 text-red-700 border-red-200'
+                            }`}>
+                              {!isSuspended ? 'Dictada' : 'Suspendida'}
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 mb-4">
+                            <div className="text-xs text-slate-650 leading-relaxed font-semibold">
+                              <strong>Contenido/Tema:</strong>
+                              <p className="mt-1 text-slate-600 font-normal line-clamp-2" title={parte.contenido || parte.temaAbordado}>
+                                {parte.contenido || parte.temaAbordado}
+                              </p>
+                            </div>
+                            <div className="text-[10px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1 font-semibold pt-1 border-t border-dashed border-slate-100">
+                              <span><strong>Docente:</strong> Prof. {parte.docenteNombre}</span>
+                              <span><strong>Horario:</strong> {parte.horario}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-100 pt-3 mt-4 flex items-center justify-between gap-3">
+                          {/* Totales de Asistencia */}
+                          <div className="flex items-center gap-2">
+                            {!isSuspended ? (
+                              <>
+                                <span className="inline-flex items-center gap-1 bg-accent-50 text-accent-700 border border-accent-100 px-2 py-0.5 rounded text-[9px] font-bold shadow-xs">
+                                  P: {totales.presentes}
+                                </span>
+                                <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 rounded text-[9px] font-bold shadow-xs">
+                                  A: {totales.ausentes}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium">Matrícula: {totales.total}</span>
+                              </>
+                            ) : (
+                              <span className="text-[9px] bg-red-50 text-red-750 font-extrabold px-2 py-0.5 rounded border border-red-200 shadow-xs truncate max-w-[180px]" title={parte.motivoSuspension || 'Clase Suspendida'}>
+                                {parte.motivoSuspension || 'Clase Suspendida'}
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedParteDetail(parte)}
+                            className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-1"
+                          >
+                            <span>Detalle</span>
+                            <ChevronRight size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* MODAL DETALLES DEL PARTE COMPLETADO */}
@@ -1172,6 +1378,103 @@ const PreceptorDashboard = () => {
                 </span>
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed italic">
                   {selectedParteDetail.observaciones || 'Sin observaciones registradas.'}
+                </div>
+              </div>
+
+              {/* Desglose de Asistencia y Detalle de Estudiantes */}
+              <div className="space-y-4">
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                  Desglose de Asistencia y Estudiantes:
+                </span>
+                
+                {/* Panel de Totales */}
+                {selectedParteDetail.huboClase === 'Sí' ? (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-accent-50 border border-accent-200 p-3 rounded-xl text-center shadow-xs">
+                      <span className="block text-[8px] uppercase tracking-wider font-extrabold text-accent-700">Presentes</span>
+                      <span className="text-xl font-extrabold text-accent-800">
+                        {Object.values(selectedParteDetail.asistencia || {}).filter(a => a === 'Presente').length}
+                      </span>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-center shadow-xs">
+                      <span className="block text-[8px] uppercase tracking-wider font-extrabold text-red-700">Ausentes</span>
+                      <span className="text-xl font-extrabold text-red-800">
+                        {Object.values(selectedParteDetail.asistencia || {}).filter(a => a === 'Ausente').length}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center shadow-xs">
+                      <span className="block text-[8px] uppercase tracking-wider font-extrabold text-slate-500">Matrícula EF</span>
+                      <span className="text-xl font-extrabold text-slate-700">
+                        {Object.values(selectedParteDetail.asistencia || {}).filter(a => a === 'Presente' || a === 'Ausente').length}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-red-50 border border-red-200 p-3.5 rounded-xl text-center shadow-xs">
+                    <span className="text-xs text-red-850 font-bold block">CLASE NO DICTADA</span>
+                    <span className="text-[10px] text-red-700">La carga de asistencias individuales fue omitida.</span>
+                  </div>
+                )}
+
+                {/* Tabla de Estudiantes */}
+                <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-60 overflow-y-auto bg-white shadow-sm">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase">
+                        <th className="py-2.5 px-3">Estudiante (Apellido, Nombre)</th>
+                        <th className="py-2.5 px-2 text-slate-400 font-mono">DNI</th>
+                        <th className="py-2.5 px-2 text-center w-28">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {alumnos
+                        .filter(al => al.cursoEF === selectedParteDetail.curso || Object.keys(selectedParteDetail.asistencia || {}).includes(al.dni))
+                        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }))
+                        .map(al => {
+                          const state = selectedParteDetail.asistencia[al.dni] || '-';
+                          const esExterno = al.cursoOrigen !== selectedParteDetail.curso;
+                          return (
+                            <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
+                              <td className="py-2.5 px-3 font-semibold text-slate-800">
+                                {al.nombre}
+                                {esExterno && (
+                                  <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-1.5 py-0.2 rounded text-[8px] font-bold">
+                                    {al.cursoOrigen} (Externo)
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-2 font-mono text-slate-400">{al.dni}</td>
+                              <td className="py-2.5 px-2 text-center">
+                                {selectedParteDetail.huboClase === 'No' ? (
+                                  <span className="inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-slate-100 text-slate-400 border border-slate-200 line-through">
+                                    S
+                                  </span>
+                                ) : state === 'Presente' ? (
+                                  <span className="inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-accent-50 text-accent-700 border border-accent-200">
+                                    Presente
+                                  </span>
+                                ) : state === 'Ausente' ? (
+                                  <span className="inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-red-50 text-red-700 border border-red-200">
+                                    Ausente
+                                  </span>
+                                ) : (
+                                  <span className="inline-block px-2 py-0.5 rounded text-[9px] font-bold bg-slate-50 text-slate-350 border border-slate-200">
+                                    -
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {alumnos.filter(al => al.cursoEF === selectedParteDetail.curso || Object.keys(selectedParteDetail.asistencia || {}).includes(al.dni)).length === 0 && (
+                        <tr>
+                          <td colSpan="3" className="py-4 text-center text-slate-400 italic">
+                            No hay alumnos registrados para este curso de Educación Física.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
