@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight } from 'lucide-react';
+import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown } from 'lucide-react';
 
 const PreceptorDashboard = () => {
   const { 
@@ -37,8 +37,19 @@ const PreceptorDashboard = () => {
       : "1°1°";
   });
   const [solFecha, setSolFecha] = useState('');
+  const [solComentario, setSolComentario] = useState('');
   const [solError, setSolError] = useState('');
   const [solSuccess, setSolSuccess] = useState('');
+
+  // Estado para filas expandidas del historial de partes requeridos
+  const [expandedSolicitudes, setExpandedSolicitudes] = useState({});
+
+  const toggleSolicitudDetalle = (id) => {
+    setExpandedSolicitudes(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   // Divisiones oficiales de la escuela (1°1° a 6°2°)
   const CURSOS = useMemo(() => [
@@ -67,7 +78,11 @@ const PreceptorDashboard = () => {
   }, [notificaciones, user]);
 
   // Estados de Filtro (Planilla)
-  const [selectedMes, setSelectedMes] = useState("05"); // Mayo por defecto
+  const [selectedMes, setSelectedMes] = useState(() => {
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    const mesesEscolares = ["03", "04", "05", "06", "07", "08", "09", "10", "11"];
+    return mesesEscolares.includes(currentMonth) ? currentMonth : "05";
+  });
   const [selectedCurso, setSelectedCurso] = useState(() => {
     return user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
       ? user.cursosAsignados[0]
@@ -355,9 +370,10 @@ const PreceptorDashboard = () => {
       return;
     }
 
-    agregarSolicitudParteFaltante(solCurso, solFecha, `${user.nombre} ${user.apellido}`, user.rol);
+    agregarSolicitudParteFaltante(solCurso, solFecha, `${user.nombre} ${user.apellido}`, user.rol, solComentario);
     setSolSuccess(`¡Solicitud enviada con éxito al docente del curso ${solCurso}!`);
     setSolFecha('');
+    setSolComentario('');
 
     setTimeout(() => {
       setSolSuccess('');
@@ -977,6 +993,17 @@ const PreceptorDashboard = () => {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Motivo / Notas de la Solicitud (Opcional)</label>
+                    <textarea
+                      value={solComentario}
+                      onChange={e => setSolComentario(e.target.value)}
+                      placeholder="Ej: Registrar con urgencia por cierre de promedios, recuperar clase feriado, etc..."
+                      rows={2}
+                      className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none font-sans"
+                    />
+                  </div>
+
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-[10px] text-slate-500 leading-relaxed font-medium">
                     <span className="font-bold text-slate-700 block mb-0.5">Notificación Interactiva:</span>
                     Al guardar, se disparará una alerta en tiempo real en el portal docente. Al confeccionar el parte para dicho curso y fecha, se marcará automáticamente la solicitud como resuelta.
@@ -1022,39 +1049,149 @@ const PreceptorDashboard = () => {
                       <tbody className="divide-y divide-slate-100 font-medium">
                         {solicitudesFaltantes.map((sol) => {
                           const completedParte = partes.find(p => p.curso === sol.curso && p.fecha === sol.fecha);
+                          const isExpanded = !!expandedSolicitudes[sol.id];
+                          const config = cursosConfig[sol.curso];
                           return (
-                            <tr key={sol.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                              <td className="py-3 px-3 font-extrabold text-slate-900">{sol.curso}</td>
-                              <td className="py-3 px-3 font-bold font-mono text-slate-750">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
-                              <td className="py-3 px-3 font-semibold text-slate-800">{sol.solicitanteNombre} <span className="text-[9px] text-slate-450 font-normal">({sol.solicitanteRol})</span></td>
-                              <td className="py-3 px-3 font-mono text-slate-500">{new Date(sol.fechaSolicitud).toLocaleString()}</td>
-                              <td className="py-3 px-3 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  {sol.completada ? (
-                                    <>
-                                      <span className="inline-flex items-center gap-1 bg-accent-50 text-accent-700 border border-accent-200 px-2 py-0.5 rounded text-[9px] font-bold">
-                                        <Check size={10} />
-                                        Completado
+                            <React.Fragment key={sol.id}>
+                              <tr className="hover:bg-slate-50 text-slate-700 transition-colors">
+                                <td className="py-3 px-3 font-extrabold text-slate-900">{sol.curso}</td>
+                                <td className="py-3 px-3 font-bold font-mono text-slate-750">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+                                <td className="py-3 px-3 font-semibold text-slate-800">{sol.solicitanteNombre} <span className="text-[9px] text-slate-450 font-normal">({sol.solicitanteRol})</span></td>
+                                <td className="py-3 px-3 font-mono text-slate-500">{new Date(sol.fechaSolicitud).toLocaleString()}</td>
+                                <td className="py-3 px-3 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleSolicitudDetalle(sol.id)}
+                                      className="text-slate-450 hover:text-slate-750 bg-slate-50 hover:bg-slate-100 px-2 py-1 rounded-xl border border-slate-200 transition-all cursor-pointer shadow-xs active:scale-95 flex items-center gap-1 text-[10px] font-extrabold"
+                                    >
+                                      <span>Detalle</span>
+                                      {isExpanded ? <ChevronDown size={11} className="text-slate-500" /> : <ChevronRight size={11} className="text-slate-500" />}
+                                    </button>
+                                    {sol.completada ? (
+                                      <>
+                                        <span className="inline-flex items-center gap-1 bg-accent-50 text-accent-700 border border-accent-200 px-2 py-0.5 rounded text-[9px] font-bold">
+                                          <Check size={10} />
+                                          Completado
+                                        </span>
+                                        {completedParte && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedParteDetail(completedParte)}
+                                            className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[9px] px-2.5 py-1 rounded-xl transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
+                                          >
+                                            Ver Reporte
+                                          </button>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 bg-red-50 text-red-750 border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold">
+                                        <Clock size={10} />
+                                        Pendiente
                                       </span>
-                                      {completedParte && (
-                                        <button
-                                          type="button"
-                                          onClick={() => setSelectedParteDetail(completedParte)}
-                                          className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[9px] px-2.5 py-1 rounded-xl transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
-                                        >
-                                          Ver Reporte
-                                        </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr className="bg-slate-50/30">
+                                  <td colSpan={5} className="p-4 border-t border-slate-150">
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm text-xs space-y-3 animate-fade-in">
+                                      {sol.completada && completedParte ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                                          <div className="space-y-2">
+                                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-accent-500"></span>
+                                              Información del Parte Confeccionado
+                                            </h4>
+                                            <p className="text-slate-600">
+                                              <strong>Docente:</strong> Prof. {completedParte.docenteNombre || `${completedParte.firmaDigital?.nombre} ${completedParte.firmaDigital?.apellido}`}
+                                            </p>
+                                            <p className="text-slate-600">
+                                              <strong>Clase:</strong> {completedParte.huboClase === 'Sí' ? `Clase N° ${completedParte.claseNum} • Unidad ${completedParte.unidad}` : 'Clase Suspendida'}
+                                            </p>
+                                            <p className="text-slate-600">
+                                              <strong>Horario:</strong> {completedParte.horario || config?.horario} ({completedParte.turno || config?.turno})
+                                            </p>
+                                            {completedParte.huboClase === 'No' && (
+                                              <p className="text-red-700 bg-red-50 border border-red-150 px-2.5 py-1.5 rounded-xl font-bold italic">
+                                                Motivo Suspensión: {completedParte.motivoSuspension || 'Sin especificar'}
+                                              </p>
+                                            )}
+                                            {sol.comentario && (
+                                              <p className="text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl font-medium mt-2">
+                                                <strong>Nota de la solicitud:</strong> {sol.comentario}
+                                              </p>
+                                            )}
+                                          </div>
+                                          <div className="space-y-2">
+                                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
+                                              Detalle Curricular y Asistencia
+                                            </h4>
+                                            <div className="text-slate-600">
+                                              <strong>Tema:</strong> 
+                                              <p className="mt-0.5 text-slate-700 italic font-medium bg-slate-50/50 p-2 border border-slate-150 rounded-lg">{completedParte.contenido || completedParte.temaAbordado || 'Sin cargar.'}</p>
+                                            </div>
+                                            <div className="text-slate-600 mt-2">
+                                              <strong>Actividades:</strong> 
+                                              <p className="mt-0.5 text-slate-700 italic font-medium bg-slate-50/50 p-2 border border-slate-150 rounded-lg">{completedParte.actividades || '-'}</p>
+                                            </div>
+                                            {completedParte.huboClase === 'Sí' && (
+                                              <div className="flex gap-2.5 mt-1.5">
+                                                <span className="bg-accent-50 text-accent-700 border border-accent-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                  Presentes: {Object.values(completedParte.asistencia || {}).filter(a => a === 'Presente').length}
+                                                </span>
+                                                <span className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                  Ausentes: {Object.values(completedParte.asistencia || {}).filter(a => a === 'Ausente').length}
+                                                </span>
+                                              </div>
+                                            )}
+                                            {completedParte.observaciones && (
+                                              <p className="text-slate-500 italic mt-1.5 text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                                <strong>Obs:</strong> {completedParte.observaciones}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                                          <div className="space-y-2">
+                                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                                              Parte Pendiente de Carga
+                                            </h4>
+                                            <p className="text-slate-600">
+                                              <strong>Curso:</strong> {sol.curso}
+                                            </p>
+                                            <p className="text-slate-600">
+                                              <strong>Docente a cargo:</strong> {config ? `Prof. ${config.docenteNombre}` : 'No asignado'}
+                                            </p>
+                                            {sol.comentario && (
+                                              <p className="text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl font-medium mt-2">
+                                                <strong>Nota de la solicitud:</strong> {sol.comentario}
+                                              </p>
+                                            )}
+                                          </div>
+                                          <div className="space-y-2">
+                                            <h4 className="font-bold text-slate-800 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                              Planificación Horaria
+                                            </h4>
+                                            <p className="text-slate-600">
+                                              <strong>Horario habitual:</strong> {config ? `${config.horario} (${config.turno})` : 'No configurado'}
+                                            </p>
+                                            <p className="text-slate-500 italic mt-2">
+                                              Al cargar el parte para la fecha {new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')} en la sección del docente, el estado cambiará automáticamente a completado y se visualizará el desglose en esta sección.
+                                            </p>
+                                          </div>
+                                        </div>
                                       )}
-                                    </>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1 bg-red-50 text-red-750 border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold">
-                                      <Clock size={10} />
-                                      Pendiente
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
@@ -1242,6 +1379,12 @@ const PreceptorDashboard = () => {
                                 {parte.contenido || parte.temaAbordado}
                               </p>
                             </div>
+                            <div className="text-xs text-slate-650 leading-relaxed font-semibold mt-1">
+                              <strong>Actividades:</strong>
+                              <p className="mt-1 text-slate-600 font-normal line-clamp-2" title={parte.actividades || '-'}>
+                                {parte.actividades || '-'}
+                              </p>
+                            </div>
                             <div className="text-[10px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1 font-semibold pt-1 border-t border-dashed border-slate-100">
                               <span><strong>Docente:</strong> Prof. {parte.docenteNombre}</span>
                               <span><strong>Horario:</strong> {parte.horario}</span>
@@ -1352,6 +1495,16 @@ const PreceptorDashboard = () => {
                 </span>
                 <div className="bg-primary-500/5 border border-primary-500/10 p-4 rounded-2xl text-xs text-slate-800 font-sans leading-relaxed font-semibold">
                   {selectedParteDetail.contenido}
+                </div>
+              </div>
+
+              {/* Actividades que se desarrollan */}
+              <div className="space-y-1.5">
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                  Actividades que se desarrollan:
+                </span>
+                <div className="bg-primary-500/5 border border-primary-500/10 p-4 rounded-2xl text-xs text-slate-800 font-sans leading-relaxed font-semibold font-semibold">
+                  {selectedParteDetail.actividades || '-'}
                 </div>
               </div>
 

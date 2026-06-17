@@ -10,6 +10,7 @@ const DocenteLibroTemas = () => {
   // Estados de Filtro
   const [selectedCurso, setSelectedCurso] = useState('1°A');
   const [selectedMes, setSelectedMes] = useState('Todos');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const ALL_CURSOS = useMemo(() => [
     '1°1°', '1°2°', '1°3°',
@@ -69,6 +70,7 @@ const DocenteLibroTemas = () => {
       fechaFirma: new Date().toISOString()
     };
     firmarAutoridadParte(parteId, firmaAutoridadObj);
+    setShowSuccessModal(true);
   };
 
   // Datos de encabezado
@@ -227,14 +229,15 @@ const DocenteLibroTemas = () => {
               <thead>
                 <tr className="bg-slate-100 text-center font-bold text-[9px] border-b border-slate-900 uppercase">
                   <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Día</th>
-                  <th className="border border-slate-900 py-2.5 px-1.5 w-[7%]">Mes</th>
-                  <th className="border border-slate-900 py-2.5 px-1.5 w-[5%]">Clase N°</th>
-                  <th className="border border-slate-900 py-2.5 px-1.5 w-[5%]">Unidad</th>
-                  <th className="border border-slate-900 py-2.5 px-2 w-[10%]">Carácter</th>
-                  <th className="border border-slate-900 py-2.5 px-3 w-[26%] text-left">Tema Abordado (Contenido)</th>
-                  <th className="border border-slate-900 py-2.5 px-2 w-[10%] text-left">Dinámica</th>
-                  <th className="border border-slate-900 py-2.5 px-2 w-[12%]">Firma del Profesor</th>
-                  <th className="border border-slate-900 py-2.5 px-2 w-[11%] text-left">Observaciones</th>
+                  <th className="border border-slate-900 py-2.5 px-1.5 w-[6%]">Mes</th>
+                  <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Clase N°</th>
+                  <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Unidad</th>
+                  <th className="border border-slate-900 py-2.5 px-2 w-[8%]">Carácter</th>
+                  <th className="border border-slate-900 py-2.5 px-3 w-[18%] text-left">Tema Abordado (Contenido)</th>
+                  <th className="border border-slate-900 py-2.5 px-3 w-[18%] text-left">Actividades que se desarrollan</th>
+                  <th className="border border-slate-900 py-2.5 px-2 w-[8%] text-left">Dinámica</th>
+                  <th className="border border-slate-900 py-2.5 px-2 w-[10%]">Firma del Profesor</th>
+                  <th className="border border-slate-900 py-2.5 px-2 w-[10%] text-left">Observaciones</th>
                   <th className="border border-slate-900 py-2.5 px-2 w-[10%]">Firma Autoridad</th>
                 </tr>
               </thead>
@@ -258,6 +261,9 @@ const DocenteLibroTemas = () => {
                     </td>
                     <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-950 text-[10px] font-sans font-bold">
                       {parte.contenido}
+                    </td>
+                    <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-850 text-[10px] font-sans font-semibold">
+                      {parte.actividades || '-'}
                     </td>
                     <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-800 font-bold leading-normal">
                       {parte.dinamica || 'Grupal'}
@@ -315,6 +321,35 @@ const DocenteLibroTemas = () => {
           </p>
         </div>
       </div>
+      {/* MODAL ÉXITO AL FIRMAR FOLIO */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative overflow-hidden animate-zoom-in text-center animate-fade-in">
+            {/* Glowing background decoration */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 rounded-full blur-xl -mr-6 -mt-6"></div>
+
+            {/* Check/Success Icon */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-accent-50 border border-accent-200 flex items-center justify-center text-accent-600 mb-4 shadow-sm">
+              <CheckCircle2 size={32} className="animate-pulse" />
+            </div>
+
+            <h3 className="text-xl font-extrabold text-slate-900 font-display">
+              Parte visado con éxito
+            </h3>
+            <p className="text-xs text-slate-500 mt-2.5 leading-relaxed font-semibold text-center">
+              La firma digital de la autoridad ha sido convalidada y estampada con éxito en el Libro de Temas.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              className="mt-6 w-full bg-accent-500 hover:bg-accent-600 text-white font-bold text-xs py-3 px-4 rounded-xl transition-all shadow-md shadow-accent-500/10 cursor-pointer active:scale-95 uppercase tracking-wider"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

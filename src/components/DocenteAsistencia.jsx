@@ -25,11 +25,23 @@ const DocenteAsistencia = () => {
   const [dinamica, setDinamica] = useState('Grupal');
   const [observaciones, setObservaciones] = useState('');
   const [temaAbordado, setTemaAbordado] = useState('');
+  const [actividades, setActividades] = useState('');
   
   const [asistenciaState, setAsistenciaState] = useState({}); // { [dni]: 'Presente' | 'Ausente' | '-' }
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [signedParte, setSignedParte] = useState(null);
+
+  // Estados para modal de éxito
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalTitle, setSuccessModalTitle] = useState('');
+  const [successModalDescription, setSuccessModalDescription] = useState('');
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSelectedCurso(null);
+    setIsEditingParteId(null);
+  };
 
   const CARACTERES = ['Práctica', 'Teórica', 'Teórica-Práctica', 'Evaluativa', 'Recreativa'];
   const SUSPENSION_MOTIVOS = ['Licencia Médica', 'Causas climáticas', 'Otros'];
@@ -58,6 +70,7 @@ const DocenteAsistencia = () => {
     setCaracter(parte.caracter || 'Práctica');
     setDinamica(parte.dinamica || 'Grupal');
     setTemaAbordado(parte.temaAbordado || '');
+    setActividades(parte.actividades || '');
     setObservaciones(parte.observaciones || '');
     setAsistenciaState(parte.asistencia || {});
     setSuccessMsg('');
@@ -117,6 +130,7 @@ const DocenteAsistencia = () => {
     setDinamica('Grupal');
     setObservaciones('');
     setTemaAbordado('');
+    setActividades('');
     
     const schoolTurno = curso.endsWith('1°') ? 'Mañana' : 'Tarde';
     const turnoDetectado = schoolTurno === 'Mañana' ? 'Tarde' : 'Mañana';
@@ -144,6 +158,7 @@ const DocenteAsistencia = () => {
 
     // Determinar valores según si HUBO clase o NO
     let temaAbordadoFinal = '';
+    let actividadesFinal = '';
     let observacionesFinal = observaciones.trim() || 'Sin observaciones.';
     let asistenciaFinal = { ...asistenciaState };
     let claseNumFinal = claseNum.trim();
@@ -161,8 +176,10 @@ const DocenteAsistencia = () => {
       }
 
       temaAbordadoFinal = `[CLASE NO DICTADA] - Motivo: ${motivoCompleto}`;
+      actividadesFinal = '-';
       observacionesFinal = `Clase suspendida. Motivo: ${motivoCompleto}`;
       claseNumFinal = '-';
+      characterFinal = '-';
       unidadFinal = '-';
       caracterFinal = '-';
       dinamicaFinal = '-';
@@ -185,7 +202,12 @@ const DocenteAsistencia = () => {
         setErrorMsg("El Tema Abordado es obligatorio.");
         return;
       }
+      if (!actividades.trim()) {
+        setErrorMsg("Las Actividades que se desarrollan son obligatorias.");
+        return;
+      }
       temaAbordadoFinal = temaAbordado.trim();
+      actividadesFinal = actividades.trim();
     }
 
     const dateObj = new Date(fecha + 'T00:00:00');
@@ -223,6 +245,7 @@ const DocenteAsistencia = () => {
       motivoSuspension: huboClase === 'No' ? (motivoSuspension === 'Otros' ? otroMotivoText.trim() : motivoSuspension) : "",
       asistencia: asistenciaFinal,
       contenido: temaAbordadoFinal,
+      actividades: actividadesFinal,
       firmaDigital,
       firmaAutoridad: isEditingParteId ? (partes.find(p => p.id === isEditingParteId)?.firmaAutoridad || null) : null
     };
@@ -230,11 +253,9 @@ const DocenteAsistencia = () => {
     if (isEditingParteId) {
       actualizarParteEF(isEditingParteId, nuevoParte);
       setSuccessMsg("¡Parte diario actualizado con éxito!");
-      
-      setTimeout(() => {
-        setIsEditingParteId(null);
-        setSelectedCurso(null);
-      }, 3000);
+      setSuccessModalTitle("¡Parte Actualizado!");
+      setSuccessModalDescription("El parte diario de asistencia ha sido modificado y guardado con éxito.");
+      setShowSuccessModal(true);
     } else {
       guardarParteEF(nuevoParte);
       setSignedParte(nuevoParte);
@@ -243,10 +264,13 @@ const DocenteAsistencia = () => {
           ? "¡Parte firmado y registrado en el Libro de Temas!" 
           : "¡Parte registrado como CLASE SUSPENDIDA con firma digital!"
       );
-
-      setTimeout(() => {
-        setSelectedCurso(null);
-      }, 4500);
+      setSuccessModalTitle("Parte generado con éxito");
+      setSuccessModalDescription(
+        huboClase === 'Sí'
+          ? `El parte de asistencia para el curso ${selectedCurso} correspondiente a la fecha ${new Date(fecha + 'T00:00:00').toLocaleDateString('es-AR')} ha sido firmado digitalmente e inyectado correctamente en el Libro de Temas.`
+          : `El parte sin dictado de clases para el curso ${selectedCurso} (Fecha: ${new Date(fecha + 'T00:00:00').toLocaleDateString('es-AR')}) ha sido registrado con éxito.`
+      );
+      setShowSuccessModal(true);
     }
   };
 
@@ -282,11 +306,16 @@ const DocenteAsistencia = () => {
                       <div className="text-[10px] text-slate-500 mt-0.5">
                         Solicitado por: <strong>{sol.solicitanteNombre} ({sol.solicitanteRol})</strong> el {new Date(sol.fechaSolicitud).toLocaleDateString()}
                       </div>
+                      {sol.comentario && (
+                        <div className="text-[10px] text-slate-650 bg-slate-50 border border-slate-200 p-2 rounded-xl mt-2 font-semibold text-left">
+                          <strong>Comentario preceptor:</strong> {sol.comentario}
+                        </div>
+                      )}
                     </div>
 
                     <button
                       onClick={() => handleSelectCurso(sol.curso, sol.fecha)}
-                      className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer self-start sm:self-center"
+                      className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer self-start sm:self-center shrink-0"
                     >
                       Confeccionar Parte Faltante
                     </button>
@@ -599,16 +628,28 @@ const DocenteAsistencia = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tema Abordado <span className="text-red-500">*</span></label>
                       <textarea
                         value={temaAbordado}
                         onChange={(e) => setTemaAbordado(e.target.value)}
-                        placeholder="Describa el contenido específico de la clase..."
+                        placeholder="Describa el tema o contenido curricular..."
                         rows={2}
                         required
-                        className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all font-sans leading-relaxed"
+                        className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all font-sans leading-relaxed font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Actividades que se desarrollan <span className="text-red-500">*</span></label>
+                      <textarea
+                        value={actividades}
+                        onChange={(e) => setActividades(e.target.value)}
+                        placeholder="Describa las actividades físicas, ejercicios o juegos..."
+                        rows={2}
+                        required
+                        className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all font-sans leading-relaxed font-semibold"
                       />
                     </div>
 
@@ -821,6 +862,36 @@ const DocenteAsistencia = () => {
             </button>
           </form>
 
+        </div>
+      )}
+
+      {/* MODAL ÉXITO AL GENERAR PARTE */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative overflow-hidden animate-zoom-in text-center animate-fade-in">
+            {/* Glowing background decoration */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 rounded-full blur-xl -mr-6 -mt-6"></div>
+
+            {/* Check/Success Icon */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-accent-50 border border-accent-200 flex items-center justify-center text-accent-600 mb-4 shadow-sm">
+              <CheckCircle2 size={32} className="animate-pulse" />
+            </div>
+
+            <h3 className="text-xl font-extrabold text-slate-900 font-display">
+              {successModalTitle}
+            </h3>
+            <p className="text-xs text-slate-550 text-slate-500 mt-2.5 leading-relaxed font-semibold text-center">
+              {successModalDescription}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleCloseSuccessModal}
+              className="mt-6 w-full bg-accent-500 hover:bg-accent-600 text-white font-bold text-xs py-3 px-4 rounded-xl transition-all shadow-md shadow-accent-500/10 cursor-pointer active:scale-95 uppercase tracking-wider"
+            >
+              Entendido
+            </button>
+          </div>
         </div>
       )}
     </div>

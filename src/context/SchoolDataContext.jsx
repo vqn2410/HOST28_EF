@@ -92,6 +92,7 @@ const INITIAL_PARTES = [
       "30001": "Presente"
     },
     contenido: "Iniciación al Voley: saques bajos, golpes de manos altas y recepción básica. Trabajo recreativo final.",
+    actividades: "Ejercicios en parejas de golpe de manos altas, saques desde zona corta y mini-partidos de 3 vs 3.",
     firmaDigital: {
       apellido: "Fernández",
       nombre: "Roberto",
@@ -126,6 +127,7 @@ const INITIAL_PARTES = [
       "30001": "Presente"
     },
     contenido: "Voley escolar: práctica formal de partidos, rotaciones y sistemas de puntuación simple.",
+    actividades: "Ejercicios de rotación en cancha y partidos formales de 6 vs 6 aplicando reglas básicas.",
     firmaDigital: {
       apellido: "Fernández",
       nombre: "Roberto",
@@ -162,6 +164,7 @@ const INITIAL_PARTES = [
       "20002": "Presente"
     },
     contenido: "Atletismo: velocidad (50 metros llanos), partidas bajas y técnicas de braceo.",
+    actividades: "Trabajo en parejas para corregir braceo, salidas en velocidad desde taco bajo y carreras cronometradas.",
     firmaDigital: {
       apellido: "Fernández",
       nombre: "Roberto",
@@ -182,7 +185,8 @@ const INITIAL_SOLICITUDES = [
     solicitanteNombre: "Javier Martínez",
     solicitanteRol: "Preceptor",
     completada: false,
-    fechaSolicitud: "2026-05-22T10:30:00.000Z"
+    fechaSolicitud: "2026-05-22T10:30:00.000Z",
+    comentario: "Por favor registrar el parte correspondiente al día del censo nacional."
   },
   {
     id: "sol2",
@@ -191,7 +195,8 @@ const INITIAL_SOLICITUDES = [
     solicitanteNombre: "Patricia González",
     solicitanteRol: "Directora",
     completada: false,
-    fechaSolicitud: "2026-05-28T16:00:00.000Z"
+    fechaSolicitud: "2026-05-28T16:00:00.000Z",
+    comentario: "Falta cargar la recuperación del día feriado."
   }
 ];
 
@@ -522,7 +527,7 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
-  const agregarSolicitudParteFaltante = async (curso, fecha, solicitanteNombre, solicitanteRol) => {
+  const agregarSolicitudParteFaltante = async (curso, fecha, solicitanteNombre, solicitanteRol, comentario = "") => {
     const id = `sol_${Date.now()}`;
     const solObj = {
       id,
@@ -531,7 +536,8 @@ export const SchoolDataProvider = ({ children }) => {
       solicitanteNombre,
       solicitanteRol,
       completada: false,
-      fechaSolicitud: new Date().toISOString()
+      fechaSolicitud: new Date().toISOString(),
+      comentario
     };
     try {
       await setDoc(doc(db, "solicitudes", id), solObj);

@@ -167,12 +167,19 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
             </p>
 
             {/* Listado de Solicitudes */}
-            <div className="my-4 bg-slate-50 border border-slate-200 rounded-2xl p-3 max-h-32 overflow-y-auto text-left text-xs font-semibold space-y-1.5 text-slate-700 shadow-inner">
+            <div className="my-4 bg-slate-50 border border-slate-200 rounded-2xl p-3 max-h-36 overflow-y-auto text-left text-xs font-semibold space-y-1.5 text-slate-700 shadow-inner">
               <span className="block text-[9px] uppercase tracking-wider text-slate-400 font-extrabold mb-1">Listado de partes solicitados:</span>
               {notificacionesFaltantes.map(sol => (
-                <div key={sol.id} className="flex justify-between border-b border-slate-100 pb-1 last:border-0 last:pb-0">
-                  <span className="text-slate-800 font-bold">Curso {sol.curso}</span>
-                  <span className="font-mono text-primary-500">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</span>
+                <div key={sol.id} className="border-b border-slate-100 pb-1.5 last:border-0 last:pb-0 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span className="text-slate-800 font-bold">Curso {sol.curso}</span>
+                    <span className="font-mono text-primary-500">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</span>
+                  </div>
+                  {sol.comentario && (
+                    <p className="text-[10px] text-slate-500 italic font-medium ml-2 bg-white/50 px-2 py-0.5 rounded border border-slate-150">
+                      <strong>Nota preceptor:</strong> {sol.comentario}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

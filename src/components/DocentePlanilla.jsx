@@ -19,7 +19,11 @@ const DocentePlanilla = () => {
   }, [cursosConfig, user.dni]);
 
   // Estados de Filtro
-  const [selectedMes, setSelectedMes] = useState("05"); // Mayo por defecto
+  const [selectedMes, setSelectedMes] = useState(() => {
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    const mesesEscolares = ["03", "04", "05", "06", "07", "08", "09", "10", "11"];
+    return mesesEscolares.includes(currentMonth) ? currentMonth : "05";
+  });
   const [selectedCurso, setSelectedCurso] = useState(() => {
     return cursosAsignados.length > 0 ? cursosAsignados[0] : "";
   });
