@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { Check, X, FileSignature, CheckCircle2, ChevronRight, AlertCircle, AlertOctagon, Bell, Calendar, Edit, Trash2, Clock } from 'lucide-react';
@@ -43,6 +43,113 @@ const DocenteAsistencia = () => {
     setIsEditingParteId(null);
   };
 
+  // Estados para reporte de inasistencia docente
+  const [showInasistenciaModal, setShowInasistenciaModal] = useState(false);
+  const [fechaInasistencia, setFechaInasistencia] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedCursosInasistencia, setSelectedCursosInasistencia] = useState([]);
+  const [motivoInasistencia, setMotivoInasistencia] = useState('Licencia Médica');
+  const [comentarioInasistencia, setComentarioInasistencia] = useState('');
+
+  const getNombreDiaSemana = (fechaStr) => {
+    if (!fechaStr) return '';
+    const dateObj = new Date(fechaStr + 'T00:00:00');
+    const diasNombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    return diasNombres[dateObj.getDay()];
+  };
+
+  const handleCursoInasistenciaToggle = (curso) => {
+    setSelectedCursosInasistencia(prev =>
+      prev.includes(curso)
+        ? prev.filter(c => c !== curso)
+        : [...prev, curso]
+    );
+  };
+
+
+
+  const handleConfirmarInasistencia = async () => {
+    if (selectedCursosInasistencia.length === 0) {
+      alert("Por favor, seleccione al menos un curso.");
+      return;
+    }
+    if (!fechaInasistencia) {
+      alert("Por favor, seleccione la fecha de inasistencia.");
+      return;
+    }
+    if (motivoInasistencia === 'Otros' && !comentarioInasistencia.trim()) {
+      alert("Por favor, especifique el motivo de la inasistencia.");
+      return;
+    }
+
+    // Registrar un parte de inasistencia para cada curso
+    for (const curso of selectedCursosInasistencia) {
+      const config = cursosConfig[curso];
+      const turno = config ? config.turno : (curso.endsWith('2°') || curso.endsWith('3°') ? 'Tarde' : 'Mañana');
+      const defaultHorario = config?.horario || (turno === 'Mañana' ? '08:00 - 09:30' : '13:30 - 15:00');
+
+      const motivoCompleto = motivoInasistencia === 'Otros'
+        ? (comentarioInasistencia.trim() || 'Motivo no especificado')
+        : motivoInasistencia;
+
+      const dateObj = new Date(fechaInasistencia + 'T00:00:00');
+      const diaString = String(dateObj.getDate()).padStart(2, '0');
+      const mesesNombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      const mesString = mesesNombres[dateObj.getMonth()];
+
+      const firmaDigital = {
+        apellido: user.apellido,
+        nombre: user.nombre,
+        cargo: 'Prof. de Educación Física',
+        correo: user.correo,
+        fechaFirma: new Date().toISOString()
+      };
+
+      // Asistencia de alumnos para clase no dictada: marcar todos como "-"
+      const asistenciaFinal = {};
+      alumnos.filter(al => al.cursoEF === curso && !al.noCursaEF).forEach(al => {
+        asistenciaFinal[al.dni] = '-';
+      });
+
+      const nuevoParte = {
+        fecha: fechaInasistencia,
+        dia: diaString,
+        mes: mesString,
+        claseNum: '-',
+        unidad: '-',
+        caracter: '-',
+        dinamica: '-',
+        observaciones: `Inasistencia Docente. Motivo: ${motivoCompleto}`,
+        curso,
+        turno,
+        horario: defaultHorario,
+        docenteNombre: `${user.nombre} ${user.apellido}`,
+        huboClase: 'No',
+        motivoSuspension: motivoCompleto,
+        asistencia: asistenciaFinal,
+        contenido: `[INASISTENCIA DOCENTE] - Motivo: ${motivoCompleto}`,
+        actividades: '-',
+        firmaDigital,
+        firmaAutoridad: null
+      };
+
+      await guardarParteEF(nuevoParte);
+    }
+
+    // Cerrar modal
+    setShowInasistenciaModal(false);
+
+    // Configurar modal de éxito
+    setSuccessModalTitle("Inasistencia Registrada");
+    setSuccessModalDescription(`Se ha registrado correctamente su inasistencia para los cursos: ${selectedCursosInasistencia.join(', ')} para el día ${new Date(fechaInasistencia + 'T00:00:00').toLocaleDateString('es-AR')}.`);
+    setShowSuccessModal(true);
+
+    // Resetear form
+    setFechaInasistencia(new Date().toISOString().split('T')[0]);
+    setSelectedCursosInasistencia([]);
+    setMotivoInasistencia('Licencia Médica');
+    setComentarioInasistencia('');
+  };
+
   const CARACTERES = ['Práctica', 'Teórica', 'Teórica-Práctica', 'Evaluativa', 'Recreativa'];
   const SUSPENSION_MOTIVOS = ['Licencia Médica', 'Causas climáticas', 'Otros'];
 
@@ -52,6 +159,21 @@ const DocenteAsistencia = () => {
       (curso) => cursosConfig[curso].docenteDni === user.dni
     );
   }, [cursosConfig, user.dni]);
+
+  // Sincronizar automáticamente los cursos del día seleccionando los correspondientes
+  useEffect(() => {
+    if (!fechaInasistencia || !cursosConfig || !showInasistenciaModal) return;
+    const dateObj = new Date(fechaInasistencia + 'T00:00:00');
+    const dayOfWeek = dateObj.getDay(); // 0: Dom, 1: Lun, 2: Mar, 3: Mié, 4: Jue, 5: Vie, 6: Sáb
+    
+    // Filtrar cursos asignados al docente que tengan clases este día de la semana
+    const cursosDelDia = cursosAsignados.filter(curso => {
+      const config = cursosConfig[curso];
+      return config?.dias?.includes(dayOfWeek);
+    });
+
+    setSelectedCursosInasistencia(cursosDelDia);
+  }, [fechaInasistencia, cursosAsignados, cursosConfig, showInasistenciaModal]);
 
   const misPartesEntregados = useMemo(() => {
     return partes.filter(p => cursosAsignados.includes(p.curso));
@@ -359,8 +481,38 @@ const DocenteAsistencia = () => {
 
           {/* Cursos Asignados */}
           <div>
-            <h2 className="text-xl font-bold text-slate-800 font-display mb-4">Cursos Asignados</h2>
-            <p className="text-slate-500 text-xs mb-6">Selecciona una de tus clases para confeccionar el Parte Diario y registrar contenidos del Libro de Temas.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 font-display">Cursos Asignados</h2>
+                <p className="text-slate-500 text-xs mt-1">Selecciona una de tus clases para confeccionar el Parte Diario o reportar una inasistencia.</p>
+              </div>
+              {cursosAsignados.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    setFechaInasistencia(todayStr);
+                    
+                    // Auto-seleccionar cursos del día de hoy
+                    const dateObj = new Date(todayStr + 'T00:00:00');
+                    const dayOfWeek = dateObj.getDay();
+                    const cursosDelDia = cursosAsignados.filter(curso => {
+                      const config = cursosConfig[curso];
+                      return config?.dias?.includes(dayOfWeek);
+                    });
+                    setSelectedCursosInasistencia(cursosDelDia);
+
+                    setMotivoInasistencia('Licencia Médica');
+                    setComentarioInasistencia('');
+                    setShowInasistenciaModal(true);
+                  }}
+                  className="bg-red-500 hover:bg-red-650 hover:bg-red-600 text-white font-bold text-xs py-2.5 px-4.5 rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer active:scale-95 flex items-center gap-1.5 self-start sm:self-center shrink-0 uppercase tracking-wide"
+                >
+                  <Calendar size={14} />
+                  Reportar Inasistencia
+                </button>
+              )}
+            </div>
             
             {cursosAsignados.length === 0 ? (
               <div className="py-12 text-center border-2 border-dashed border-slate-300 rounded-3xl bg-white">
@@ -922,6 +1074,167 @@ const DocenteAsistencia = () => {
             >
               Entendido
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL REPORTAR INASISTENCIA */}
+      {showInasistenciaModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 md:p-8 relative overflow-hidden animate-zoom-in max-h-[90vh] overflow-y-auto">
+            {/* Cabecera del Modal */}
+            <div className="flex items-center justify-between border-b border-slate-150 pb-4 mb-5">
+              <div>
+                <span className="text-[10px] font-bold text-red-650 bg-red-500/10 border border-red-500/20 px-2.5 py-0.5 rounded-full uppercase">
+                  Reporte de Inasistencia Docente
+                </span>
+                <h3 className="text-xl font-bold text-slate-900 font-display mt-1">
+                  Declarar Inasistencia
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInasistenciaModal(false)}
+                className="text-slate-400 hover:text-slate-650 bg-slate-50 hover:bg-slate-100 p-2 rounded-full border border-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-5 text-left text-xs font-semibold">
+              <p className="text-slate-550 text-slate-500 font-medium leading-relaxed">
+                Seleccione la fecha y los cursos en los que no dictará clases. Se registrará automáticamente la inasistencia y se inyectará en el Libro de Temas de cada curso.
+              </p>
+
+              {/* Fecha de Inasistencia */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">Fecha de la Inasistencia</label>
+                  <span className="text-[10px] text-slate-500 font-semibold bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                    Día: <strong className="text-slate-800">{getNombreDiaSemana(fechaInasistencia)}</strong>
+                  </span>
+                </div>
+                <input
+                  type="date"
+                  value={fechaInasistencia}
+                  onChange={(e) => setFechaInasistencia(e.target.value)}
+                  className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-red-500 transition-all"
+                />
+              </div>
+
+              {/* Selección de Cursos */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">Cursos Afectados <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  {cursosAsignados.map(curso => {
+                    const isChecked = selectedCursosInasistencia.includes(curso);
+                    const config = cursosConfig[curso];
+                    const dateObj = new Date(fechaInasistencia + 'T00:00:00');
+                    const dayOfWeek = dateObj.getDay();
+                    const isScheduledToday = config?.dias?.includes(dayOfWeek);
+
+                    return (
+                      <label
+                        key={curso}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                          isChecked
+                            ? 'bg-red-50 border-red-200 text-red-700 font-bold'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleCursoInasistenciaToggle(curso)}
+                            className="w-3.5 h-3.5 accent-red-500 rounded cursor-pointer"
+                          />
+                          <span>Curso {curso}</span>
+                        </div>
+                        {isScheduledToday && (
+                          <span className="text-[9px] bg-red-100 text-red-800 px-1.5 py-0.5 rounded-md border border-red-200 font-extrabold font-sans">
+                            PROGRAMADO
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {/* Advertencia si no tiene cursos programados para este día de la semana */}
+                {fechaInasistencia && (() => {
+                  const dateObj = new Date(fechaInasistencia + 'T00:00:00');
+                  const dayOfWeek = dateObj.getDay();
+                  const anyScheduled = cursosAsignados.some(curso => cursosConfig[curso]?.dias?.includes(dayOfWeek));
+                  if (!anyScheduled) {
+                    return (
+                      <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-2xl flex gap-2.5 items-start mt-2">
+                        <AlertCircle className="shrink-0 text-yellow-600 mt-0.5" size={16} />
+                        <p className="text-[10px] leading-relaxed font-medium">
+                          <strong>Aviso:</strong> No tiene cursos programados habitualmente para los días <strong>{getNombreDiaSemana(fechaInasistencia)}</strong>.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+
+              {/* Motivo de Inasistencia */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Motivo del Reporte</label>
+                <select
+                  value={motivoInasistencia}
+                  onChange={(e) => setMotivoInasistencia(e.target.value)}
+                  className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-500 transition-all font-bold cursor-pointer"
+                >
+                  <option value="Licencia Médica">Licencia Médica</option>
+                  <option value="Razones Personales">Razones Personales</option>
+                  <option value="Trámites">Trámites</option>
+                  <option value="Otros">Otros (Especificar)</option>
+                </select>
+              </div>
+
+              {/* Comentario Adicional */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                  Observaciones / Comentarios {motivoInasistencia === 'Otros' && <span className="text-red-500">*</span>}
+                </label>
+                <textarea
+                  value={comentarioInasistencia}
+                  onChange={(e) => setComentarioInasistencia(e.target.value)}
+                  placeholder={motivoInasistencia === 'Otros' ? 'Escriba obligatoriamente el motivo aquí...' : 'Añada algún detalle adicional... (Opcional)'}
+                  rows={2}
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-red-500 transition-all leading-relaxed font-semibold"
+                />
+              </div>
+
+              {/* Advertencia Premium */}
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-3 flex gap-2.5 items-start">
+                <AlertOctagon className="shrink-0 text-red-550 mt-0.5" size={16} />
+                <p className="text-[10px] leading-relaxed font-medium">
+                  <strong>IMPORTANTE:</strong> Al registrar la inasistencia, se generará automáticamente un parte con estado <strong>Clase Suspendida</strong> para los cursos seleccionados, registrándose en sus Libros de Temas.
+                </p>
+              </div>
+            </div>
+
+            {/* Acciones */}
+            <div className="mt-6 pt-4 border-t border-slate-150 flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowInasistenciaModal(false)}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-750 font-bold text-xs px-5 py-2.5 rounded-xl border border-slate-200 transition-all cursor-pointer active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarInasistencia}
+                className="bg-red-500 hover:bg-red-650 hover:bg-red-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer active:scale-95 uppercase tracking-wide"
+              >
+                Confirmar Reporte
+              </button>
+            </div>
           </div>
         </div>
       )}
