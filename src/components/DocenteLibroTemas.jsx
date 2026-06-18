@@ -3,12 +3,49 @@ import { useAuth } from '../context/AuthContext';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { Filter, CheckCircle2, AlertCircle, FileText, Printer, Download } from 'lucide-react';
 
+// Iconos decorativos de Educación Física
+const SoccerBallIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <polygon points="12,9 14.8,11 13.7,14.3 10.3,14.3 9.2,11" fill="currentColor" fillOpacity="0.15" />
+    <path d="M12 9V2M14.8 11L21.5 8.9M13.7 14.3L17.9 20.9M10.3 14.3L6.1 20.9M9.2 11L2.5 8.9" />
+  </svg>
+);
+
+const BasketballIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2v20M2 12h20" />
+    <path d="M5 5c3.5 3.5 3.5 10.5 0 14" />
+    <path d="M19 5c-3.5 3.5 -3.5 10.5 0 14" />
+  </svg>
+);
+
+const HockeyIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M6 5l8 10c.8 1 .5 2.5-.5 3s-2.2.3-2.7-.7l-1.8-3.3" />
+    <path d="M18 5L10 15c-.8 1-.5 2.5.5 3s2.2.3 2.7-.7l1.8-3.3" />
+    <circle cx="12" cy="17" r="1.5" fill="currentColor" />
+  </svg>
+);
+
+const WhistleIcon = ({ className = "w-6 h-6" }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M9 16c-2.8 0-5-2.2-5-5s2.2-5 5-5h4v10H9z" />
+    <path d="M13 8h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6" />
+    <path d="M11 6V4h2v2" />
+    <circle cx="4" cy="11" r="2" />
+    <circle cx="9" cy="11" r="1" fill="currentColor" />
+    <path d="M17 3c1.5 1 2.5 2.5 2.5 4.5M20 2c2 1.5 3.5 3.5 3.5 6" strokeWidth="1" opacity="0.6" />
+  </svg>
+);
+
 const DocenteLibroTemas = () => {
   const { user, usuarios } = useAuth();
   const { partes, firmarAutoridadParte, cursosConfig } = useSchoolData();
 
   // Estados de Filtro
-  const [selectedCurso, setSelectedCurso] = useState('1°A');
+  const [selectedCurso, setSelectedCurso] = useState('1°1°');
   const [selectedMes, setSelectedMes] = useState('Todos');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
@@ -45,7 +82,7 @@ const DocenteLibroTemas = () => {
 
   React.useEffect(() => {
     if (user.rol === "Docente" && !cursosVisibles.includes(selectedCurso)) {
-      setSelectedCurso(cursosVisibles[0] || '1°A');
+      setSelectedCurso(cursosVisibles[0] || '1°1°');
     }
   }, [cursosVisibles, selectedCurso, user]);
 
@@ -61,7 +98,7 @@ const DocenteLibroTemas = () => {
   }, [partes, selectedCurso, selectedMes]);
 
   // Firma Autoridad
-  const handleFirmaAutoridad = (parteId) => {
+  const handleFirmaAutoridad = async (parteId) => {
     const firmaAutoridadObj = {
       apellido: user.apellido,
       nombre: user.nombre,
@@ -69,7 +106,17 @@ const DocenteLibroTemas = () => {
       correo: user.correo,
       fechaFirma: new Date().toISOString()
     };
-    firmarAutoridadParte(parteId, firmaAutoridadObj);
+    
+    const clickedIndex = partesFiltrados.findIndex(p => p.id === parteId);
+    if (clickedIndex === -1) return;
+    
+    // Obtener el parte clickeado y todos los anteriores en orden cronológico (los de "arriba")
+    const partesAVisar = partesFiltrados.slice(0, clickedIndex + 1).filter(p => !p.firmaAutoridad);
+    
+    if (partesAVisar.length > 0) {
+      await Promise.all(partesAVisar.map(p => firmarAutoridadParte(p.id, firmaAutoridadObj)));
+    }
+    
     setShowSuccessModal(true);
   };
 
@@ -94,7 +141,7 @@ const DocenteLibroTemas = () => {
     const preceptorObj = usuarios.find(
       u => u.rol === "Preceptor" && u.cursosAsignados?.includes(selectedCurso)
     );
-    const preceptorNombre = preceptorObj 
+    const preceptorNombre = preceptorObj
       ? `${preceptorObj.nombre} ${preceptorObj.apellido}`
       : "Sin asignar";
 
@@ -108,8 +155,46 @@ const DocenteLibroTemas = () => {
     };
   }, [partesFiltrados, selectedCurso, cursosConfig, usuarios]);
 
+  const scheduleByDay = useMemo(() => {
+    const scheduleMap = { 1: '-', 2: '-', 3: '-', 4: '-', 5: '-' };
+    const config = cursosConfig[selectedCurso];
+
+    if (!config) return scheduleMap;
+
+    const hasDayNames = /lunes|martes|miércoles|miercoles|jueves|viernes/i.test(config.horario);
+
+    if (hasDayNames) {
+      config.horario.split('•').forEach(part => {
+        const trimmed = part.trim();
+        const match = trimmed.match(/^(lunes|martes|miércoles|miercoles|jueves|viernes)\s+(.+)$/i);
+        if (match) {
+          const dayName = match[1].toLowerCase();
+          const timeStr = match[2].trim();
+          let dayIndex = 0;
+          if (dayName.includes('lun')) dayIndex = 1;
+          else if (dayName.includes('mar')) dayIndex = 2;
+          else if (dayName.includes('mié') || dayName.includes('mie')) dayIndex = 3;
+          else if (dayName.includes('jue')) dayIndex = 4;
+          else if (dayName.includes('vie')) dayIndex = 5;
+
+          if (dayIndex >= 1 && dayIndex <= 5) {
+            scheduleMap[dayIndex] = timeStr;
+          }
+        }
+      });
+    } else {
+      const diasArray = config.dias || [];
+      diasArray.forEach(d => {
+        if (scheduleMap[d] !== undefined) {
+          scheduleMap[d] = config.horario;
+        }
+      });
+    }
+
+    return scheduleMap;
+  }, [selectedCurso, cursosConfig]);
+
   const descargarExcelLibroTemas = () => {
-    // Generar cabeceras institucionales como filas preliminares para que se vea como el encabezado del folio en Excel!
     const headerRows = [
       ["E.E.S N° 28 - Gustavo Cerati", "", "", "Nivel: Secundario", "Orientación: Arte-Música"],
       ["Curso:", selectedCurso, "", "Turno:", headerInfo.turno],
@@ -118,20 +203,20 @@ const DocenteLibroTemas = () => {
       ["Preceptor:", headerInfo.preceptor, "", "Docente:", `${headerInfo.profesor} (${headerInfo.situacion})`],
       [], // Fila vacía
     ];
-    
+
     const tableHeaders = [
-      "Día", "Mes", "Clase N°", "Unidad", "Carácter", 
-      "Tema Abordado (Contenido)", "Actividades desarrolladas", 
+      "Día", "Mes", "Clase N°", "Unidad", "Carácter",
+      "Tema Abordado (Contenido)", "Actividades desarrolladas",
       "Dinámica", "Firma Profesor", "Observaciones", "Firma Autoridad"
     ];
-    
+
     const dataRows = partesFiltrados.map(p => {
       const fd = p.firmaDigital;
       const firmaProf = fd ? `${fd.apellido}, ${fd.nombre[0]}. (VERIFICADA ✔)` : "No firmado";
-      
+
       const fa = p.firmaAutoridad;
       const firmaAut = fa ? `${fa.apellido}, ${fa.nombre[0]}. (APROBADO)` : "Pendiente";
-      
+
       return [
         p.dia || p.fecha.split('-')[2],
         p.mes || 'Mayo',
@@ -146,31 +231,46 @@ const DocenteLibroTemas = () => {
         firmaAut
       ];
     });
-    
+
     const allRows = [
       ...headerRows,
       tableHeaders,
       ...dataRows
     ];
-    
-    const csvContent = "\uFEFF" + 
+
+    const csvContent = "\uFEFF" +
       allRows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(";")).join("\n");
-      
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    
-    const filename = `libro_de_temas_${selectedCurso}_${selectedMes}.csv`;
-    link.setAttribute("download", filename);
+    link.setAttribute("download", "libro_de_temas_" + selectedCurso + "_" + selectedMes + ".csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  const formatFirmaDate = (isoString) => {
+    if (!isoString) return '';
+    try {
+      const date = new Date(isoString);
+      const dStr = date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const tStr = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      return dStr + " " + tStr + " hs";
+    } catch (e) {
+      return '';
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Encabezado y Filtros */}
+
+
+
+
+
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-800 font-display mb-1">Visualización Oficial del Libro de Temas</h2>
@@ -228,59 +328,116 @@ const DocenteLibroTemas = () => {
       <div className="bg-white text-slate-950 p-6 md:p-8 rounded-3xl shadow-lg overflow-x-auto border border-slate-200 font-sans print:p-0 print:border-none print:shadow-none libro-temas-print-area">
         <div className="min-w-[1000px] space-y-6">
 
-          <div className="text-center">
-            <h1 className="text-2xl font-extrabold tracking-wide uppercase font-serif border-b-2 border-slate-900 pb-1 inline-block text-slate-950">
-              Libro de Temas
-            </h1>
+          <div className="flex items-center justify-between border-b border-slate-900 pb-3 mb-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo.png"
+                className="w-14 h-14 object-contain"
+                alt="Logotipo Oficial"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <div className="text-left font-sans">
+                <span className="font-black text-base text-slate-950 tracking-tight block uppercase leading-tight">
+                  Escuela de Educación Secundaria N°28
+                </span>
+                <span className="text-[11px] block text-slate-500 font-semibold italic mt-0.5">
+                  "Gustavo Cerati"
+                </span>
+              </div>
+            </div>
+
+            {/* Deportes y Ed. Física Deco */}
+            <div className="flex items-center gap-4 px-4 py-1.5 bg-slate-50 rounded-2xl border border-slate-200 print:bg-white print:border-slate-300 shadow-xs">
+              <div className="flex flex-col items-center">
+                <SoccerBallIcon className="w-7 h-7 text-emerald-600 print:text-slate-700" />
+                <span className="text-[7px] font-black uppercase text-slate-400 mt-1 tracking-wider">Fútbol</span>
+              </div>
+              <div className="h-8 w-px bg-slate-200"></div>
+              <div className="flex flex-col items-center">
+                <BasketballIcon className="w-7 h-7 text-amber-600 print:text-slate-700" />
+                <span className="text-[7px] font-black uppercase text-slate-400 mt-1 tracking-wider">Básquet</span>
+              </div>
+              <div className="h-8 w-px bg-slate-200"></div>
+              <div className="flex flex-col items-center">
+                <HockeyIcon className="w-7 h-7 text-sky-600 print:text-slate-700" />
+                <span className="text-[7px] font-black uppercase text-slate-400 mt-1 tracking-wider">Hockey</span>
+              </div>
+              <div className="h-8 w-px bg-slate-200"></div>
+              <div className="flex flex-col items-center">
+                <WhistleIcon className="w-7 h-7 text-rose-500 print:text-slate-700" />
+                <span className="text-[7px] font-black uppercase text-slate-400 mt-1 tracking-wider">Silbato</span>
+              </div>
+            </div>
+
+            <div className="text-center pr-2 font-sans">
+              <h1 className="text-2xl font-black tracking-wider uppercase text-slate-950 leading-none">
+                Libro de Temas
+              </h1>
+              <span className="text-[8px] block text-slate-400 font-bold tracking-widest uppercase mt-1">
+                Folio Oficial de Firmas
+              </span>
+              <span className="text-[10px] block text-slate-600 font-extrabold uppercase mt-1">
+                Ciclo Lectivo: 2026
+              </span>
+            </div>
           </div>
 
           {/* Encabezado del Folio adaptado a E.E.S N° 28 - "Gustavo Cerati" */}
           <table className="w-full border-collapse border border-slate-900 text-[10px] font-sans text-slate-900">
             <tbody>
               <tr>
-                <td className="border border-slate-900 p-2.5 font-extrabold w-[35%] text-[11px] text-slate-950">
-                  E.E.S N° 28 - "Gustavo Cerati"
-                </td>
-                <td className="border border-slate-900 p-2 w-[15%]">
-                  <span className="font-bold block text-[8px] text-slate-500 uppercase">SEDE</span>
-                </td>
-                <td className="border border-slate-900 p-2 w-[15%]">
-                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Nivel:</span>
-                  <span className="font-extrabold text-[10px] text-slate-950">Secundario</span>
-                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Orientación:</span>
-                  <span className="font-extrabold text-[10px] text-slate-950">Arte-Música</span>
+                <td className="border border-slate-900 p-2 w-[25%]">
+                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Asignatura:</span>
+                  <span className="font-extrabold text-[10px] text-slate-950">Educación Física</span>
                 </td>
                 <td className="border border-slate-900 p-2 w-[15%]">
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Curso:</span>
                   <span className="font-extrabold text-[10px] text-slate-950">{selectedCurso}</span>
                 </td>
-                <td className="border border-slate-900 p-2 w-[20%]">
+                <td className="border border-slate-900 p-2 w-[15%]">
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Turno:</span>
                   <span className="font-extrabold text-[10px] text-slate-950">{headerInfo.turno}</span>
                 </td>
+                <td className="border border-slate-900 p-0 w-[45%]" rowSpan={3} style={{ height: '1px' }}>
+                  <div className="flex flex-col h-full justify-start">
+                    <span className="font-extrabold block text-[9px] text-slate-950 uppercase px-2 py-2 bg-slate-50 border-b border-slate-900 tracking-wider text-center">
+                      Días y Horarios:
+                    </span>
+                    <table className="w-full flex-1 text-center text-[9px] border-collapse h-full">
+                      <thead>
+                        <tr className="border-b border-slate-900 bg-slate-50 text-[8px] font-bold text-slate-600 uppercase">
+                          <th className="border-r border-slate-900 py-1 font-sans w-1/5">Lunes</th>
+                          <th className="border-r border-slate-900 py-1 font-sans w-1/5">Martes</th>
+                          <th className="border-r border-slate-900 py-1 font-sans w-1/5">Miércoles</th>
+                          <th className="border-r border-slate-900 py-1 font-sans w-1/5">Jueves</th>
+                          <th className="py-1 font-sans w-1/5">Viernes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="h-full">
+                        <tr className="font-mono text-slate-900 font-bold text-[8px] h-full">
+                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[1]}</td>
+                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[2]}</td>
+                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[3]}</td>
+                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[4]}</td>
+                          <td className="py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[5]}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
               </tr>
               <tr>
-                <td className="border border-slate-900 p-2 w-[35%]">
-                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Asignatura:</span>
-                  <span className="font-extrabold text-[11px] text-slate-950">Educación Física</span>
-                </td>
-                <td className="border border-slate-900 p-2 w-[15%]">
-                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Ciclo Lectivo:</span>
-                  <span className="font-extrabold text-[10px] text-slate-950">2026</span>
-                </td>
-                <td className="border border-slate-900 p-2 w-[30%]" colSpan={2}>
-                  <span className="font-bold block text-[8px] text-slate-500 uppercase">Días y Horarios:</span>
-                  <span className="font-extrabold text-[10px] font-mono text-slate-950">{headerInfo.dias} • {headerInfo.horario}</span>
-                </td>
-                <td className="border border-slate-900 p-2 w-[20%]">
+                <td className="border border-slate-900 p-2" colSpan={3}>
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Preceptor:</span>
                   <span className="font-extrabold text-[10px] text-slate-950">{headerInfo.preceptor}</span>
                 </td>
               </tr>
               <tr>
-                <td className="border border-slate-900 p-2" colSpan={5}>
+                <td className="border border-slate-900 p-2" colSpan={3}>
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Docente a Cargo (Situación de Revista):</span>
-                  <span className="font-extrabold text-[11px] text-slate-950">Prof. {headerInfo.profesor} ({headerInfo.situacion})</span>
+                  <span className="font-extrabold text-[10px] text-slate-950">Prof. {headerInfo.profesor} ({headerInfo.situacion})</span>
                 </td>
               </tr>
             </tbody>
@@ -299,6 +456,7 @@ const DocenteLibroTemas = () => {
                 <tr className="bg-slate-100 text-center font-bold text-[9px] border-b border-slate-900 uppercase">
                   <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Día</th>
                   <th className="border border-slate-900 py-2.5 px-1.5 w-[6%]">Mes</th>
+                  <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Año</th>
                   <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Clase N°</th>
                   <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Unidad</th>
                   <th className="border border-slate-900 py-2.5 px-2 w-[8%]">Carácter</th>
@@ -311,13 +469,25 @@ const DocenteLibroTemas = () => {
                 </tr>
               </thead>
               <tbody>
-                {partesFiltrados.map((parte) => (
-                  <tr key={parte.id} className="hover:bg-slate-50 transition-colors align-top">
+                {partesFiltrados.map((parte) => {
+                  const isInasistencia = parte.huboClase === 'No' || parte.contenido?.includes('[INASISTENCIA DOCENTE]');
+                  return (
+                    <tr 
+                      key={parte.id} 
+                      className={`transition-colors align-top ${
+                        isInasistencia 
+                          ? "bg-red-50/85 hover:bg-red-100/70 print:bg-red-50/50" 
+                          : "hover:bg-slate-50"
+                      }`}
+                    >
                     <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
                       {parte.dia || parte.fecha.split('-')[2]}
                     </td>
                     <td className="border border-slate-900 py-3 px-1 text-center font-bold text-slate-900">
                       {parte.mes || 'Mayo'}
+                    </td>
+                    <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
+                      {parte.fecha ? parte.fecha.split('-')[0] : '2026'}
                     </td>
                     <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
                       {parte.claseNum || '1'}
@@ -337,42 +507,54 @@ const DocenteLibroTemas = () => {
                     <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-800 font-bold leading-normal">
                       {parte.dinamica || 'Grupal'}
                     </td>
-                    <td className="border border-slate-900 py-2 px-1 text-center">
-                      <div className="bg-accent-50 border border-accent-300 rounded p-1 text-[8px] font-mono text-accent-850 font-bold leading-tight">
-                        <span className="block font-black text-accent-700">VERIFICADA ✔</span>
-                        <span>{parte.firmaDigital.apellido}, {parte.firmaDigital.nombre[0]}.</span>
-                      </div>
-                    </td>
+                    <td className="border border-slate-900 py-1.5 px-1 text-center">
+                       {parte.firmaDigital ? (
+                         <div className="bg-accent-50 border border-accent-300 rounded p-1 text-[7px] font-mono text-accent-850 font-bold leading-tight">
+                           <span className="block font-black text-accent-700 mb-0.5">VERIFICADA ✔</span>
+                           <span className="block text-slate-900">{parte.firmaDigital.nombre} {parte.firmaDigital.apellido}</span>
+                           <span className="block text-[6px] text-slate-500 font-semibold mt-0.5">{parte.firmaDigital.cargo || 'Prof. de Educación Física'}</span>
+                           <span className="block text-[6px] text-slate-450 mt-0.5 font-medium">
+                             {formatFirmaDate(parte.firmaDigital.fechaFirma)}
+                           </span>
+                         </div>
+                       ) : (
+                         <span className="inline-block bg-slate-100 text-slate-400 text-[8px] font-bold px-1.5 py-1 rounded w-full">
+                           No firmado
+                         </span>
+                       )}
+                     </td>
                     <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-700 font-bold leading-normal italic">
                       {parte.observaciones || 'Sin observaciones.'}
                     </td>
-                    <td className="border border-slate-900 py-2 px-1 text-center">
-                      {parte.firmaAutoridad ? (
-                        <div className="bg-primary-50 border border-primary-200 rounded p-1 text-[7px] font-mono text-primary-850 font-bold leading-tight">
-                          <span className="block font-black text-primary-700">APROBADO</span>
-                          <span>{parte.firmaAutoridad.apellido}, {parte.firmaAutoridad.nombre[0]}.</span>
-                          <span className="block text-[6px] text-slate-450 mt-0.5 font-semibold">
-                            {new Date(parte.firmaAutoridad.fechaFirma).toLocaleDateString('es-AR')}
-                          </span>
-                        </div>
-                      ) : (
-                        user.rol === "Equipo de Conducción" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleFirmaAutoridad(parte.id)}
-                            className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-[8px] uppercase px-1.5 py-1 rounded border border-primary-700 hover:border-primary-600 shadow-sm active:scale-95 transition-all w-full cursor-pointer"
-                          >
-                            Firmar Folio
-                          </button>
-                        ) : (
-                          <span className="inline-block bg-slate-100 text-slate-400 text-[8px] font-bold px-1.5 py-1.5 rounded w-full">
-                            Pendiente
-                          </span>
-                        )
-                      )}
-                    </td>
+                    <td className="border border-slate-900 py-1.5 px-1 text-center">
+                       {parte.firmaAutoridad ? (
+                         <div className="bg-primary-50 border border-primary-200 rounded p-1 text-[7px] font-mono text-primary-850 font-bold leading-tight">
+                           <span className="block font-black text-primary-700 mb-0.5">APROBADO ✔</span>
+                           <span className="block text-slate-900">{parte.firmaAutoridad.nombre} {parte.firmaAutoridad.apellido}</span>
+                           <span className="block text-[6px] text-slate-500 font-semibold mt-0.5">{parte.firmaAutoridad.cargo || 'Autoridad'}</span>
+                           <span className="block text-[6px] text-slate-450 mt-0.5 font-medium">
+                             {formatFirmaDate(parte.firmaAutoridad.fechaFirma)}
+                           </span>
+                         </div>
+                       ) : (
+                         user.rol === "Equipo de Conducción" ? (
+                           <button
+                             type="button"
+                             onClick={() => handleFirmaAutoridad(parte.id)}
+                             className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-[8px] uppercase px-1.5 py-1 rounded border border-primary-700 hover:border-primary-600 shadow-sm active:scale-95 transition-all w-full cursor-pointer"
+                           >
+                             Firmar Folio
+                           </button>
+                         ) : (
+                           <span className="inline-block bg-slate-100 text-slate-400 text-[8px] font-bold px-1.5 py-1.5 rounded w-full">
+                             Pendiente
+                           </span>
+                         )
+                       )}
+                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           )}
