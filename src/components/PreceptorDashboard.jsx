@@ -4,12 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen, Download } from 'lucide-react';
 
 const PreceptorDashboard = () => {
-  const { 
-    alumnos, 
-    partes, 
-    cursosConfig, 
-    informes, 
-    solicitudesFaltantes, 
+  const {
+    alumnos,
+    partes,
+    cursosConfig,
+    informes,
+    solicitudesFaltantes,
     agregarSolicitudParteFaltante,
     notificaciones = [],
     marcarNotificacionLeida
@@ -72,7 +72,7 @@ const PreceptorDashboard = () => {
 
   const misNotificaciones = useMemo(() => {
     if (!user || !user.cursosAsignados) return [];
-    return notificaciones.filter(n => 
+    return notificaciones.filter(n =>
       user.cursosAsignados.includes(n.curso) &&
       !(n.leidaPor || []).includes(user.dni)
     );
@@ -139,39 +139,39 @@ const PreceptorDashboard = () => {
   };
 
   const descargarPartesExcel = (exportAll = false) => {
-    const targetPartes = exportAll 
-      ? partes 
+    const targetPartes = exportAll
+      ? partes
       : partesFiltrados;
-      
+
     const headers = [
-      "ID Parte", "Fecha", "Curso", "Turno", "Horario", "Docente", 
-      "Hubo Clase", "Clase N°", "Unidad", "Carácter", "Dinámica", 
-      "Tema / Contenido", "Actividades desarrolladas", "Observaciones", 
-      "Motivo Suspensión", "Firma Docente", "Firma Autoridad", 
+      "ID Parte", "Fecha", "Curso", "Turno", "Horario", "Docente",
+      "Hubo Clase", "Clase N°", "Unidad", "Carácter", "Dinámica",
+      "Tema / Contenido", "Actividades desarrolladas", "Observaciones",
+      "Motivo Suspensión", "Firma Docente", "Firma Autoridad",
       "Presentes", "Ausentes", "Total Asistencia", "Detalle Asistencia"
     ];
-    
+
     const rows = targetPartes.map(p => {
       const totales = obtenerTotalesParte(p);
-      
+
       const fd = p.firmaDigital;
-      const firmaDocenteText = fd 
+      const firmaDocenteText = fd
         ? `${fd.apellido}, ${fd.nombre} (${fd.cargo} - ${fd.correo}) el ${new Date(fd.fechaFirma).toLocaleDateString('es-AR')}`
         : "No firmado";
-        
+
       const fa = p.firmaAutoridad;
-      const firmaAutoridadText = fa 
+      const firmaAutoridadText = fa
         ? `${fa.apellido}, ${fa.nombre} (${fa.cargo} - ${fa.correo}) el ${new Date(fa.fechaFirma).toLocaleDateString('es-AR')}`
         : "Pendiente";
-        
+
       const asistenciaDetalle = p.huboClase === 'Sí' && p.asistencia
         ? Object.entries(p.asistencia).map(([dni, estado]) => {
-            const alumno = alumnos.find(a => a.dni === dni);
-            const nombreAlumno = alumno ? alumno.nombre : "Desconocido";
-            return `${nombreAlumno} (${dni}): ${estado}`;
-          }).join(" | ")
+          const alumno = alumnos.find(a => a.dni === dni);
+          const nombreAlumno = alumno ? alumno.nombre : "Desconocido";
+          return `${nombreAlumno} (${dni}): ${estado}`;
+        }).join(" | ")
         : (p.huboClase === 'No' ? 'Clase Suspendida' : '-');
-        
+
       return [
         p.id,
         p.fecha,
@@ -196,19 +196,19 @@ const PreceptorDashboard = () => {
         asistenciaDetalle
       ];
     });
-    
-    const csvContent = "\uFEFF" + 
+
+    const csvContent = "\uFEFF" +
       [headers.join(";"), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(";"))].join("\n");
-      
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    
-    const filename = exportAll 
-      ? "partes_emitidos_historico_completo.csv" 
+
+    const filename = exportAll
+      ? "partes_emitidos_historico_completo.csv"
       : `partes_emitidos_curso_${selectedCursoPartes}_${selectedMesPartes}.csv`;
-      
+
     link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
@@ -246,8 +246,8 @@ const PreceptorDashboard = () => {
         const dayNum = String(date.getDate()).padStart(2, '0');
         const formattedDate = `${year}-${selectedMes}-${dayNum}`;
         const label = dayOfWeek === 1 ? `Lun ${date.getDate()}` :
-                      dayOfWeek === 2 ? `Mar ${date.getDate()}` :
-                      dayOfWeek === 3 ? `Mié ${date.getDate()}` : `Jue ${date.getDate()}`;
+          dayOfWeek === 2 ? `Mar ${date.getDate()}` :
+            dayOfWeek === 3 ? `Mié ${date.getDate()}` : `Jue ${date.getDate()}`;
         dias.push({ dateStr: formattedDate, label });
       }
       date.setDate(date.getDate() + 1);
@@ -257,9 +257,9 @@ const PreceptorDashboard = () => {
 
   // Calcular clases suspendidas en el mes para el curso seleccionado
   const clasesSuspendidas = useMemo(() => {
-    return partes.filter(p => 
-      p.curso === selectedCurso && 
-      p.fecha.split('-')[1] === selectedMes && 
+    return partes.filter(p =>
+      p.curso === selectedCurso &&
+      p.fecha.split('-')[1] === selectedMes &&
       p.huboClase === 'No'
     ).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   }, [partes, selectedCurso, selectedMes]);
@@ -284,8 +284,8 @@ const PreceptorDashboard = () => {
   // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados)
   const alumnosReasignados = useMemo(() => {
     return alumnos
-      .filter(al => 
-        al.cursoOrigen === selectedCurso && 
+      .filter(al =>
+        al.cursoOrigen === selectedCurso &&
         al.cursoEF !== selectedCurso &&
         !al.noCursaEF
       )
@@ -299,8 +299,8 @@ const PreceptorDashboard = () => {
   // 3. Filtrar Alumnos Exceptuados de EF
   const alumnosExceptuados = useMemo(() => {
     return alumnos
-      .filter(al => 
-        al.cursoOrigen === selectedCurso && 
+      .filter(al =>
+        al.cursoOrigen === selectedCurso &&
         !!al.noCursaEF
       )
       .sort((a, b) => {
@@ -330,7 +330,7 @@ const PreceptorDashboard = () => {
       if (solCursoDiasSemana.includes(dayOfWeek)) {
         const dayNum = String(date.getDate()).padStart(2, '0');
         const formattedDate = `${year}-${selectedMes}-${dayNum}`;
-        
+
         // Solo sugerir fechas pasadas o del día de hoy
         if (formattedDate <= hoyStr) {
           const tieneParte = partes.some(p => p.fecha === formattedDate && p.curso === solCurso);
@@ -392,8 +392,8 @@ const PreceptorDashboard = () => {
 
   // Obtener estado de asistencia histórico para un alumno
   const getAsistenciaEstado = (alumnoDni, fechaStr) => {
-    const parte = partes.find(p => 
-      p.fecha === fechaStr && 
+    const parte = partes.find(p =>
+      p.fecha === fechaStr &&
       p.curso === selectedCurso
     );
 
@@ -480,11 +480,10 @@ const PreceptorDashboard = () => {
       <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
         <button
           onClick={() => setActiveTab('planilla')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'planilla'
-              ? 'border-primary-500 text-primary-500 bg-primary-500/5'
-              : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'planilla'
+            ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+            : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+            }`}
         >
           <BarChart3 size={16} />
           Planilla Mensual
@@ -492,27 +491,25 @@ const PreceptorDashboard = () => {
 
         <button
           onClick={() => setActiveTab('solicitudes')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'solicitudes'
-              ? 'border-primary-500 text-primary-500 bg-primary-500/5'
-              : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'solicitudes'
+            ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+            : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+            }`}
         >
           <Bell size={16} />
-          Solicitudes de Partes {solicitudesFaltantes.filter(s=>!s.completada).length > 0 && (
+          Solicitudes de Partes {solicitudesFaltantes.filter(s => !s.completada).length > 0 && (
             <span className="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse">
-              {solicitudesFaltantes.filter(s=>!s.completada).length}
+              {solicitudesFaltantes.filter(s => !s.completada).length}
             </span>
           )}
         </button>
 
         <button
           onClick={() => setActiveTab('informes')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'informes'
-              ? 'border-primary-500 text-primary-500 bg-primary-500/5'
-              : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'informes'
+            ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+            : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+            }`}
         >
           <FileText size={16} />
           Actas e Informes
@@ -520,11 +517,10 @@ const PreceptorDashboard = () => {
 
         <button
           onClick={() => setActiveTab('partes')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === 'partes'
-              ? 'border-primary-500 text-primary-500 bg-primary-500/5'
-              : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'partes'
+            ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+            : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+            }`}
         >
           <FileSignature size={16} />
           Partes de Clase
@@ -570,7 +566,7 @@ const PreceptorDashboard = () => {
 
       {/* Renderizado de Pestañas */}
       <div className="pt-2 animate-fade-in">
-        
+
         {activeTab === 'planilla' && (
           <div className="space-y-8">
             {/* Botones de Selección de Cursos Disponibles */}
@@ -590,11 +586,10 @@ const PreceptorDashboard = () => {
                         setSelectedCurso(c);
                         setSelectedTurno(c.endsWith('1°') ? 'Tarde' : 'Mañana');
                       }}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase transition-all shadow-xs border cursor-pointer active:scale-95 ${
-                        isSelected
-                          ? 'bg-primary-500 border-primary-500 text-white shadow-md'
-                          : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
-                      }`}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase transition-all shadow-xs border cursor-pointer active:scale-95 ${isSelected
+                        ? 'bg-primary-500 border-primary-500 text-white shadow-md'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
+                        }`}
                     >
                       Curso {c}
                     </button>
@@ -621,17 +616,7 @@ const PreceptorDashboard = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Turno</label>
-                  <select
-                    value={selectedTurno}
-                    onChange={e => setSelectedTurno(e.target.value)}
-                    className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none transition-all cursor-pointer"
-                  >
-                    <option value="Mañana">Mañana (Lun y Mié)</option>
-                    <option value="Tarde">Tarde (Mar y Jue)</option>
-                  </select>
-                </div>
+
               </div>
             </div>
 
@@ -647,7 +632,7 @@ const PreceptorDashboard = () => {
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">Listado de alumnos que realizan Educación Física en {selectedCurso}.</p>
                 </div>
-                
+
                 <div className="flex items-center gap-3 text-[10px] text-slate-500 font-bold uppercase self-start sm:self-center">
                   <span className="flex items-center gap-1"><span className="w-5 h-5 rounded bg-accent-50 text-accent-600 border border-accent-200 text-center text-[9px] font-extrabold leading-5">P</span> Presente</span>
                   <span className="flex items-center gap-1"><span className="w-5 h-5 rounded bg-red-50 text-red-600 border border-red-200 text-center text-[9px] font-extrabold leading-5">A</span> Ausente</span>
@@ -671,11 +656,10 @@ const PreceptorDashboard = () => {
                           const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
                           const noHuboClase = parte && parte.huboClase === 'No';
                           return (
-                            <th 
-                              key={d.dateStr} 
-                              className={`py-3 px-1.5 text-center font-mono font-bold select-none min-w-[50px] ${
-                                noHuboClase ? 'bg-red-50 text-red-700 border-x border-red-200' : 'text-slate-500'
-                              }`}
+                            <th
+                              key={d.dateStr}
+                              className={`py-3 px-1.5 text-center font-mono font-bold select-none min-w-[50px] ${noHuboClase ? 'bg-red-50 text-red-700 border-x border-red-200' : 'text-slate-500'
+                                }`}
                             >
                               {d.label}
                             </th>
@@ -700,20 +684,19 @@ const PreceptorDashboard = () => {
                               )}
                             </td>
                             <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
-                            
+
                             {diasClaseMes.map(d => {
                               const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
                               const noHuboClase = parte && parte.huboClase === 'No';
                               const state = getAsistenciaEstado(al.dni, d.dateStr);
                               return (
-                                <td 
-                                  key={d.dateStr} 
-                                  className={`py-3 px-1.5 text-center font-bold ${
-                                    noHuboClase ? 'bg-red-50/50 border-x border-red-100' : ''
-                                  }`}
+                                <td
+                                  key={d.dateStr}
+                                  className={`py-3 px-1.5 text-center font-bold ${noHuboClase ? 'bg-red-50/50 border-x border-red-100' : ''
+                                    }`}
                                 >
                                   {noHuboClase ? (
-                                    <span 
+                                    <span
                                       className="inline-block w-6 h-6 rounded bg-red-100 text-red-700 border border-red-200 text-center leading-6 text-[10px] font-extrabold cursor-help"
                                       title={`Clase Suspendida: ${parte.motivoSuspension || 'Sin especificar'}`}
                                     >
@@ -739,10 +722,9 @@ const PreceptorDashboard = () => {
                             {/* Resumen */}
                             <td className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold border-l border-slate-200">{stats.presentes}</td>
                             <td className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
-                            <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${
-                              stats.porcentaje >= 80 ? "text-accent-600" :
+                            <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${stats.porcentaje >= 80 ? "text-accent-600" :
                               stats.porcentaje >= 60 ? "text-yellow-600" : "text-red-600"
-                            }`}>
+                              }`}>
                               {stats.porcentaje}%
                             </td>
                           </tr>
@@ -793,7 +775,7 @@ const PreceptorDashboard = () => {
                         const stats = calcularEstadisticasAlumnoReasignado(al);
                         const cursoConfig = cursosConfig[al.cursoEF];
                         const diasArray = cursoConfig ? cursoConfig.dias : (al.cursoEF.endsWith('1°') ? [2, 4] : [1, 3]);
-                        const diasLabel = diasArray.map(d => 
+                        const diasLabel = diasArray.map(d =>
                           d === 1 ? 'Lunes' : d === 2 ? 'Martes' : d === 3 ? 'Miércoles' : d === 4 ? 'Jueves' : 'Viernes'
                         ).join(' y ');
                         const horarioLabel = cursoConfig ? cursoConfig.horario : "13:30 - 15:00";
@@ -826,10 +808,10 @@ const PreceptorDashboard = () => {
                             const parte = partes.find(p => p.fecha === d.dateStr && p.curso === cEF);
                             if (!parte) return { label: d.label, state: '-', dateStr: d.dateStr };
                             if (parte.huboClase === 'No') return { label: d.label, state: 'Susp.', dateStr: d.dateStr };
-                            return { 
-                              label: d.label, 
-                              state: parte.asistencia[alumno.dni] || '-', 
-                              dateStr: d.dateStr 
+                            return {
+                              label: d.label,
+                              state: parte.asistencia[alumno.dni] || '-',
+                              dateStr: d.dateStr
                             };
                           });
                         };
@@ -852,15 +834,14 @@ const PreceptorDashboard = () => {
                             <td className="py-3 px-3">
                               <div className="flex flex-wrap gap-1 max-w-xs">
                                 {detalleAsist.map(det => (
-                                  <span 
-                                    key={det.dateStr} 
+                                  <span
+                                    key={det.dateStr}
                                     title={`Fecha: ${det.label} - Asistencia: ${det.state}`}
-                                    className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-mono font-bold border ${
-                                      det.state === 'Presente' ? 'bg-accent-50 text-accent-700 border-accent-200' :
+                                    className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-mono font-bold border ${det.state === 'Presente' ? 'bg-accent-50 text-accent-700 border-accent-200' :
                                       det.state === 'Ausente' ? 'bg-red-50 text-red-700 border-red-200' :
-                                      det.state === 'Susp.' ? 'bg-slate-100 text-slate-450 border-slate-200 line-through' :
-                                      'bg-slate-50 text-slate-350 border-slate-200'
-                                    }`}
+                                        det.state === 'Susp.' ? 'bg-slate-100 text-slate-450 border-slate-200 line-through' :
+                                          'bg-slate-50 text-slate-350 border-slate-200'
+                                      }`}
                                   >
                                     {det.label}:{det.state === 'Presente' ? 'P' : det.state === 'Ausente' ? 'A' : det.state === 'Susp.' ? 'S' : '-'}
                                   </span>
@@ -869,10 +850,9 @@ const PreceptorDashboard = () => {
                             </td>
                             <td className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold">{stats.presentes}</td>
                             <td className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
-                            <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${
-                              stats.porcentaje >= 80 ? "text-accent-600" :
+                            <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${stats.porcentaje >= 80 ? "text-accent-600" :
                               stats.porcentaje >= 60 ? "text-yellow-600" : "text-red-600"
-                            }`}>
+                              }`}>
                               {stats.porcentaje}%
                             </td>
                           </tr>
@@ -889,7 +869,7 @@ const PreceptorDashboard = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-850 font-display flex items-center gap-2">
-                    <span className="text-slate-850">Grilla 3: Alumnos Exceptuados (No cursan EF)</span>
+                    <span className="text-slate-850">Grilla 3: Alumnos que no cursan EF</span>
                     <span className="text-xs bg-red-50 border border-red-200 text-red-700 font-bold px-2.5 py-0.5 rounded-full">
                       {alumnosExceptuados.length} Estudiantes
                     </span>
@@ -920,7 +900,7 @@ const PreceptorDashboard = () => {
                           <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
                           <td className="py-3 px-3">
                             <span className="inline-block bg-red-50 text-red-700 border border-red-250 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
-                              Exceptuado / No cursa
+                              No cursa
                             </span>
                           </td>
                           <td className="py-3 px-3 text-slate-500 italic">No registra cómputo de asistencia para EF.</td>
@@ -1041,7 +1021,7 @@ const PreceptorDashboard = () => {
                       className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none font-mono font-semibold"
                       required
                     />
-                    
+
                     {/* Visualizador de días sin completar */}
                     <div className="mt-3.5">
                       {fechasSinCompletar.length > 0 ? (
@@ -1208,11 +1188,11 @@ const PreceptorDashboard = () => {
                                               Detalle Curricular y Asistencia
                                             </h4>
                                             <div className="text-slate-600">
-                                              <strong>Tema:</strong> 
+                                              <strong>Tema:</strong>
                                               <p className="mt-0.5 text-slate-700 italic font-medium bg-slate-50/50 p-2 border border-slate-150 rounded-lg">{completedParte.contenido || completedParte.temaAbordado || 'Sin cargar.'}</p>
                                             </div>
                                             <div className="text-slate-600 mt-2">
-                                              <strong>Actividades:</strong> 
+                                              <strong>Actividades:</strong>
                                               <p className="mt-0.5 text-slate-700 italic font-medium bg-slate-50/50 p-2 border border-slate-150 rounded-lg">{completedParte.actividades || '-'}</p>
                                             </div>
                                             {completedParte.huboClase === 'Sí' && (
@@ -1303,7 +1283,7 @@ const PreceptorDashboard = () => {
                 {informes.map((inf) => (
                   <div key={inf.id} className="glass-panel rounded-2xl border border-slate-200 p-5 relative overflow-hidden bg-white shadow-md animate-pulse-once">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-xl"></div>
-                    
+
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b border-slate-100 pb-2">
                       <div>
                         <span className="inline-block bg-primary-500/10 border border-primary-500/25 text-primary-600 text-[9px] font-bold px-2 py-0.5 rounded">
@@ -1311,7 +1291,7 @@ const PreceptorDashboard = () => {
                         </span>
                         <h4 className="text-sm font-bold text-slate-800 font-display mt-1.5">{inf.titulo}</h4>
                       </div>
-                      
+
                       {/* Sello de Firma inmutable */}
                       <div className="badge-signed px-2.5 py-1 rounded-xl text-[8px] font-mono text-accent-700 font-bold self-start sm:self-center">
                         <span className="block font-black text-accent-600">FIRMA DOCENTE CONVALIDADA ✔</span>
@@ -1368,11 +1348,10 @@ const PreceptorDashboard = () => {
                       onClick={() => {
                         setSelectedCursoPartes(c);
                       }}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase transition-all shadow-xs border cursor-pointer active:scale-95 ${
-                        isSelected
-                          ? 'bg-primary-500 border-primary-500 text-white shadow-md'
-                          : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
-                      }`}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase transition-all shadow-xs border cursor-pointer active:scale-95 ${isSelected
+                        ? 'bg-primary-500 border-primary-500 text-white shadow-md'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:border-slate-300'
+                        }`}
                     >
                       Curso {c}
                     </button>
@@ -1441,11 +1420,10 @@ const PreceptorDashboard = () => {
                     const totales = obtenerTotalesParte(parte);
                     const isSuspended = parte.huboClase === 'No';
                     return (
-                      <div 
-                        key={parte.id} 
-                        className={`glass-panel border rounded-2xl p-5 bg-white shadow-md flex flex-col justify-between transition-all duration-300 hover:shadow-lg relative overflow-hidden group border-slate-200 ${
-                          isSuspended ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-primary-500'
-                        }`}
+                      <div
+                        key={parte.id}
+                        className={`glass-panel border rounded-2xl p-5 bg-white shadow-md flex flex-col justify-between transition-all duration-300 hover:shadow-lg relative overflow-hidden group border-slate-200 ${isSuspended ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-primary-500'
+                          }`}
                       >
                         <div>
                           <div className="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
@@ -1457,11 +1435,10 @@ const PreceptorDashboard = () => {
                                 {isSuspended ? 'Clase Suspendida' : `Clase N° ${parte.claseNum} • Unidad ${parte.unidad}`}
                               </h3>
                             </div>
-                            <span className={`inline-block text-[9px] font-extrabold px-2 py-0.5 rounded uppercase border ${
-                              !isSuspended 
-                                ? 'bg-accent-50 text-accent-700 border-accent-200' 
-                                : 'bg-red-50 text-red-700 border-red-200'
-                            }`}>
+                            <span className={`inline-block text-[9px] font-extrabold px-2 py-0.5 rounded uppercase border ${!isSuspended
+                              ? 'bg-accent-50 text-accent-700 border-accent-200'
+                              : 'bg-red-50 text-red-700 border-red-200'
+                              }`}>
                               {!isSuspended ? 'Dictada' : 'Suspendida'}
                             </span>
                           </div>
@@ -1577,7 +1554,7 @@ const PreceptorDashboard = () => {
                 <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Desglose de Asistencia y Estudiantes:
                 </span>
-                
+
                 {/* Panel de Totales */}
                 {selectedParteDetail.huboClase === 'Sí' ? (
                   <div className="grid grid-cols-3 gap-3">
@@ -1682,7 +1659,7 @@ const PreceptorDashboard = () => {
                   </div>
                   {showModalCurricular ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
-                
+
                 {showModalCurricular && (
                   <div className="p-4 border-t border-slate-200 space-y-4 bg-white text-left animate-fade-in text-xs">
                     {/* Clase N° y Unidad */}
@@ -1695,11 +1672,10 @@ const PreceptorDashboard = () => {
                       </div>
                       <div>
                         <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400">Estado de Clase</span>
-                        <span className={`inline-block font-extrabold px-2 py-0.5 rounded text-[10px] mt-0.5 ${
-                          selectedParteDetail.huboClase === 'Sí'
-                            ? 'bg-accent-50 text-accent-700 border border-accent-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
-                        }`}>
+                        <span className={`inline-block font-extrabold px-2 py-0.5 rounded text-[10px] mt-0.5 ${selectedParteDetail.huboClase === 'Sí'
+                          ? 'bg-accent-50 text-accent-700 border border-accent-200'
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
                           {selectedParteDetail.huboClase === 'Sí' ? 'Dictada' : 'Suspendida'}
                         </span>
                       </div>
