@@ -64,6 +64,9 @@ const AdminPanel = () => {
   const [adminParteAsistencia, setAdminParteAsistencia] = useState({});
   const [adminParteSuccessMsg, setAdminParteSuccessMsg] = useState('');
   const [adminParteErrorMsg, setAdminParteErrorMsg] = useState('');
+  const [adminParteShowSuccessModal, setAdminParteShowSuccessModal] = useState(false);
+  const [adminParteSuccessModalTitle, setAdminParteSuccessModalTitle] = useState('');
+  const [adminParteSuccessModalDescription, setAdminParteSuccessModalDescription] = useState('');
 
   // Cursos Oficiales según las especificaciones de la E.E.S N° 28:
   // - 1° y 2° año: 3 divisiones (1°, 2° y 3° -> 1°1°, 1°2°, 1°3°)
@@ -268,6 +271,23 @@ const AdminPanel = () => {
     setAdminParteClaseNum(String(index + 1));
   }, [adminParteSelectedCurso, adminParteFecha, adminParteHuboClase, partes, adminParteEditingId]);
 
+  // Validar si ya existe un parte para este curso y fecha (Admin Panel)
+  React.useEffect(() => {
+    if (!adminParteSelectedCurso || !adminParteFecha) return;
+    
+    const yaExiste = partes.some(p => 
+      p.curso === adminParteSelectedCurso && 
+      p.fecha === adminParteFecha && 
+      p.id !== adminParteEditingId
+    );
+    
+    if (yaExiste) {
+      setAdminParteErrorMsg(`Ya existe un parte diario registrado para el curso ${adminParteSelectedCurso} en la fecha ${new Date(adminParteFecha + 'T00:00:00').toLocaleDateString('es-AR')}. No se permiten duplicados.`);
+    } else {
+      setAdminParteErrorMsg('');
+    }
+  }, [adminParteSelectedCurso, adminParteFecha, adminParteEditingId, partes]);
+
   // Manejar el cambio de curso de origen en matrícula de estudiantes para auto-calcular el turno
   const handleEstCursoOrigenChange = (cursoValue) => {
     const turnoCalculado = determinarTurno(cursoValue);
@@ -466,6 +486,14 @@ const AdminPanel = () => {
 
   // ─────────── Handlers para el formulario de Creación de Parte (Admin) ───────────
 
+  const handleCloseAdminParteSuccessModal = () => {
+    setAdminParteShowSuccessModal(false);
+    setAdminParteSelectedCurso(null);
+    setAdminParteEditingId(null);
+    setAdminParteSuccessMsg('');
+    setAdminParteErrorMsg('');
+  };
+
   const handleAdminParteSelectCurso = (curso) => {
     setAdminParteSelectedCurso(curso);
     setAdminParteEditingId(null);
@@ -533,6 +561,17 @@ const AdminPanel = () => {
     e.preventDefault();
     setAdminParteSuccessMsg('');
     setAdminParteErrorMsg('');
+
+    // Validar duplicado antes de guardar
+    const yaExiste = partes.some(p => 
+      p.curso === adminParteSelectedCurso && 
+      p.fecha === adminParteFecha && 
+      p.id !== adminParteEditingId
+    );
+    if (yaExiste) {
+      setAdminParteErrorMsg(`Ya existe un parte diario registrado para el curso ${adminParteSelectedCurso} en la fecha ${new Date(adminParteFecha + 'T00:00:00').toLocaleDateString('es-AR')}. No se permiten duplicados.`);
+      return;
+    }
 
     // Resolver docente
     const docenteObj = usuarios.find(u => u.dni === adminParteDocenteDni && u.rol === 'Docente');
@@ -618,20 +657,18 @@ const AdminPanel = () => {
 
     if (adminParteEditingId) {
       actualizarParteEF(adminParteEditingId, nuevoParte);
-      setAdminParteSuccessMsg('¡Parte actualizado con éxito!');
-      setTimeout(() => {
-        setAdminParteEditingId(null);
-        setAdminParteSelectedCurso(null);
-      }, 2500);
+      setAdminParteSuccessModalTitle('¡Parte Actualizado!');
+      setAdminParteSuccessModalDescription('El parte diario de asistencia ha sido modificado y guardado con éxito.');
+      setAdminParteShowSuccessModal(true);
     } else {
       guardarParteEF(nuevoParte);
-      setAdminParteSuccessMsg(adminParteHuboClase === 'Sí'
-        ? '¡Parte creado y registrado en el Libro de Temas!'
-        : '¡Acta de Clase Suspendida registrada!'
+      setAdminParteSuccessModalTitle('Parte registrado con éxito');
+      setAdminParteSuccessModalDescription(
+        adminParteHuboClase === 'Sí'
+          ? `El parte de asistencia para el curso ${adminParteSelectedCurso} correspondiente a la fecha ${new Date(adminParteFecha + 'T00:00:00').toLocaleDateString('es-AR')} ha sido registrado e inyectado correctamente en el Libro de Temas.`
+          : `El acta de clase suspendida para el curso ${adminParteSelectedCurso} correspondiente a la fecha ${new Date(adminParteFecha + 'T00:00:00').toLocaleDateString('es-AR')} ha sido registrada correctamente.`
       );
-      setTimeout(() => {
-        setAdminParteSelectedCurso(null);
-      }, 3500);
+      setAdminParteShowSuccessModal(true);
     }
   };
 
@@ -922,6 +959,29 @@ const AdminPanel = () => {
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", "ejemplo_matricula_estudiantes.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const descargarEstudiantesExcel = () => {
+    const headers = ["Nombre", "DNI", "Curso Origen", "Turno", "Curso EF", "Estado EF"];
+    const rows = alumnosFiltradosYOrdenados.map(a => [
+      a.nombre,
+      a.dni,
+      a.cursoOrigen,
+      a.turno,
+      a.noCursaEF ? 'No cursa' : a.cursoEF,
+      a.noCursaEF ? 'No cursa EF' : (a.cursoEF !== a.cursoOrigen ? 'Alumno Externo' : 'Regular')
+    ]);
+    const csvContent = "\uFEFF" + 
+      [headers.join(";"), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(";"))].join("\n");
+      
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `estudiantes_matriculados_${filterCurso}_${filterTurno}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1818,12 +1878,21 @@ const AdminPanel = () => {
 
         {activeTab === 'estudiantes_lista' && (
           <div className="glass-panel rounded-3xl p-6 border border-slate-200 bg-white shadow-sm w-full animate-fade-in">
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100 flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <BookOpen className="text-accent-500" size={18} />
                 <h3 className="text-lg font-bold text-slate-800 font-display">Estudiantes Matriculados</h3>
               </div>
-              <span className="text-[10px] text-slate-500 uppercase bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md font-bold">Vite Live State</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={descargarEstudiantesExcel}
+                  className="flex items-center gap-1.5 bg-accent-500 hover:bg-accent-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm cursor-pointer"
+                >
+                  <Download size={14} />
+                  <span>Exportar Estudiantes (Excel)</span>
+                </button>
+                <span className="text-[10px] text-slate-500 uppercase bg-slate-100 border border-slate-200 px-2 py-1 rounded-md font-bold">Vite Live State</span>
+              </div>
             </div>
 
             {/* Barra de Filtros interactiva */}
@@ -2850,6 +2919,36 @@ const AdminPanel = () => {
                 {partesUploadProgress.completed ? 'Cerrar Ventana' : 'Procesando...'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ÉXITO AL REGISTRAR/ACTUALIZAR PARTE DESDE ADMIN */}
+      {adminParteShowSuccessModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 relative overflow-hidden animate-zoom-in text-center animate-fade-in">
+            {/* Glowing background decoration */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 rounded-full blur-xl -mr-6 -mt-6"></div>
+
+            {/* Check/Success Icon */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-accent-50 border border-accent-200 flex items-center justify-center text-accent-600 mb-4 shadow-sm">
+              <CheckCircle2 size={32} className="animate-pulse" />
+            </div>
+
+            <h3 className="text-xl font-extrabold text-slate-900 font-display">
+              {adminParteSuccessModalTitle}
+            </h3>
+            <p className="text-xs text-slate-550 text-slate-500 mt-2.5 leading-relaxed font-semibold text-center font-sans">
+              {adminParteSuccessModalDescription}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleCloseAdminParteSuccessModal}
+              className="mt-6 w-full bg-accent-500 hover:bg-accent-600 text-white font-bold text-xs py-3 px-4 rounded-xl transition-all shadow-md shadow-accent-500/10 cursor-pointer active:scale-95 uppercase tracking-wider font-sans"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

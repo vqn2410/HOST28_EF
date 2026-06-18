@@ -327,7 +327,7 @@ const DocentePlanilla = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
-                  <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
+                  <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
                   <th className="py-3 px-2 font-mono text-slate-400">DNI</th>
                   {diasClaseMes.map(d => {
                     const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
@@ -352,8 +352,8 @@ const DocentePlanilla = () => {
                 {alumnosRegulares.map((al) => {
                   const stats = calcularEstadisticasAlumno(al.dni);
                   return (
-                    <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                      <td className="py-3 px-3 font-bold text-slate-800">
+                    <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
+                      <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                         {al.nombre}
                         {al.cursoOrigen !== selectedCurso && (
                           <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-255 px-1.5 py-0.5 rounded text-[9px] font-bold">
@@ -439,7 +439,7 @@ const DocentePlanilla = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
-                  <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
+                  <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
                   <th className="py-3 px-2 text-slate-400 font-mono">DNI</th>
                   <th className="py-3 px-3 font-bold text-yellow-650">Curso de EF Destino</th>
                   <th className="py-3 px-3 font-bold text-slate-600">Turno y Horario</th>
@@ -499,8 +499,8 @@ const DocentePlanilla = () => {
                   const detalleAsist = getDetalleAsistenciaReasignado(al);
 
                   return (
-                    <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                      <td className="py-3 px-3 font-bold text-slate-800">{al.nombre}</td>
+                    <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
+                      <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
                       <td className="py-3 px-2 text-slate-400 font-mono">{al.dni}</td>
                       <td className="py-3 px-3">
                         <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[10px] font-bold">
@@ -569,7 +569,7 @@ const DocentePlanilla = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
-                  <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
+                  <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
                   <th className="py-3 px-2 text-slate-400 font-mono">DNI</th>
                   <th className="py-3 px-3 font-bold text-red-750">Estado</th>
                   <th className="py-3 px-3 font-bold text-slate-600">Observaciones</th>
@@ -577,8 +577,8 @@ const DocentePlanilla = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {alumnosExceptuados.map((al) => (
-                  <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                    <td className="py-3 px-3 font-bold text-slate-855 line-through text-slate-700">{al.nombre}</td>
+                  <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
+                    <td className="py-3 px-3 font-bold text-slate-855 line-through text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
                     <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
                     <td className="py-3 px-3">
                       <span className="inline-block bg-red-50 text-red-700 border border-red-250 px-2 py-0.5 rounded text-[10px] font-bold uppercase">

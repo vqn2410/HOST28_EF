@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolData } from '../context/SchoolDataContext';
-import { Filter, CheckCircle2, AlertCircle, FileText, Printer } from 'lucide-react';
+import { Filter, CheckCircle2, AlertCircle, FileText, Printer, Download } from 'lucide-react';
 
 const DocenteLibroTemas = () => {
   const { user, usuarios } = useAuth();
@@ -108,6 +108,66 @@ const DocenteLibroTemas = () => {
     };
   }, [partesFiltrados, selectedCurso, cursosConfig, usuarios]);
 
+  const descargarExcelLibroTemas = () => {
+    // Generar cabeceras institucionales como filas preliminares para que se vea como el encabezado del folio en Excel!
+    const headerRows = [
+      ["E.E.S N° 28 - Gustavo Cerati", "", "", "Nivel: Secundario", "Orientación: Arte-Música"],
+      ["Curso:", selectedCurso, "", "Turno:", headerInfo.turno],
+      ["Asignatura:", "Educación Física", "", "Ciclo Lectivo:", "2026"],
+      ["Días y Horarios:", headerInfo.dias, "", "Horario:", headerInfo.horario],
+      ["Preceptor:", headerInfo.preceptor, "", "Docente:", `${headerInfo.profesor} (${headerInfo.situacion})`],
+      [], // Fila vacía
+    ];
+    
+    const tableHeaders = [
+      "Día", "Mes", "Clase N°", "Unidad", "Carácter", 
+      "Tema Abordado (Contenido)", "Actividades desarrolladas", 
+      "Dinámica", "Firma Profesor", "Observaciones", "Firma Autoridad"
+    ];
+    
+    const dataRows = partesFiltrados.map(p => {
+      const fd = p.firmaDigital;
+      const firmaProf = fd ? `${fd.apellido}, ${fd.nombre[0]}. (VERIFICADA ✔)` : "No firmado";
+      
+      const fa = p.firmaAutoridad;
+      const firmaAut = fa ? `${fa.apellido}, ${fa.nombre[0]}. (APROBADO)` : "Pendiente";
+      
+      return [
+        p.dia || p.fecha.split('-')[2],
+        p.mes || 'Mayo',
+        p.claseNum || '1',
+        p.unidad || 'I',
+        p.caracter || 'Práctica',
+        p.contenido || '',
+        p.actividades || '-',
+        p.dinamica || 'Grupal',
+        firmaProf,
+        p.observaciones || 'Sin observaciones.',
+        firmaAut
+      ];
+    });
+    
+    const allRows = [
+      ...headerRows,
+      tableHeaders,
+      ...dataRows
+    ];
+    
+    const csvContent = "\uFEFF" + 
+      allRows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(";")).join("\n");
+      
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    
+    const filename = `libro_de_temas_${selectedCurso}_${selectedMes}.csv`;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Encabezado y Filtros */}
@@ -117,13 +177,22 @@ const DocenteLibroTemas = () => {
           <p className="text-slate-500 text-xs">Planilla oficial integrada que replica la estructura del documento físico escolar.</p>
         </div>
 
-        <button
-          onClick={() => window.print()}
-          className="self-start md:self-auto flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm cursor-pointer"
-        >
-          <Printer size={14} />
-          Imprimir Folio Oficial
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+          <button
+            onClick={descargarExcelLibroTemas}
+            className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm cursor-pointer"
+          >
+            <Download size={14} />
+            <span>Descargar Libro de Temas (Excel)</span>
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm cursor-pointer"
+          >
+            <Printer size={14} />
+            <span>Imprimir Folio Oficial</span>
+          </button>
+        </div>
       </div>
 
       {/* Barra de Filtros Light */}

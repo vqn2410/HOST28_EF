@@ -211,6 +211,23 @@ const DocenteAsistencia = () => {
     setClaseNum(String(index + 1));
   }, [selectedCurso, fecha, huboClase, partes, isEditingParteId]);
 
+  // Validar si ya existe un parte para este curso y fecha
+  useEffect(() => {
+    if (!selectedCurso || !fecha) return;
+    
+    const yaExiste = partes.some(p => 
+      p.curso === selectedCurso && 
+      p.fecha === fecha && 
+      p.id !== isEditingParteId
+    );
+    
+    if (yaExiste) {
+      setErrorMsg(`Ya existe un parte diario registrado para el curso ${selectedCurso} en la fecha ${new Date(fecha + 'T00:00:00').toLocaleDateString('es-AR')}. No se permiten duplicados.`);
+    } else {
+      setErrorMsg('');
+    }
+  }, [selectedCurso, fecha, isEditingParteId, partes]);
+
   const handleEditParteClick = (parte) => {
     setIsEditingParteId(parte.id);
     setSelectedCurso(parte.curso);
@@ -309,6 +326,17 @@ const DocenteAsistencia = () => {
     setSuccessMsg('');
     setErrorMsg('');
     setSignedParte(null);
+
+    // Validar duplicado antes de guardar
+    const yaExiste = partes.some(p => 
+      p.curso === selectedCurso && 
+      p.fecha === fecha && 
+      p.id !== isEditingParteId
+    );
+    if (yaExiste) {
+      setErrorMsg(`Ya existe un parte diario registrado para el curso ${selectedCurso} en la fecha ${new Date(fecha + 'T00:00:00').toLocaleDateString('es-AR')}. No se permiten duplicados.`);
+      return;
+    }
 
     // Determinar valores según si HUBO clase o NO
     let temaAbordadoFinal = '';

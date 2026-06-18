@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
+import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen, Download } from 'lucide-react';
 
 const PreceptorDashboard = () => {
   const { 
@@ -136,6 +136,83 @@ const PreceptorDashboard = () => {
       sinRegistro,
       total: presentes + ausentes
     };
+  };
+
+  const descargarPartesExcel = (exportAll = false) => {
+    const targetPartes = exportAll 
+      ? partes 
+      : partesFiltrados;
+      
+    const headers = [
+      "ID Parte", "Fecha", "Curso", "Turno", "Horario", "Docente", 
+      "Hubo Clase", "Clase N°", "Unidad", "Carácter", "Dinámica", 
+      "Tema / Contenido", "Actividades desarrolladas", "Observaciones", 
+      "Motivo Suspensión", "Firma Docente", "Firma Autoridad", 
+      "Presentes", "Ausentes", "Total Asistencia", "Detalle Asistencia"
+    ];
+    
+    const rows = targetPartes.map(p => {
+      const totales = obtenerTotalesParte(p);
+      
+      const fd = p.firmaDigital;
+      const firmaDocenteText = fd 
+        ? `${fd.apellido}, ${fd.nombre} (${fd.cargo} - ${fd.correo}) el ${new Date(fd.fechaFirma).toLocaleDateString('es-AR')}`
+        : "No firmado";
+        
+      const fa = p.firmaAutoridad;
+      const firmaAutoridadText = fa 
+        ? `${fa.apellido}, ${fa.nombre} (${fa.cargo} - ${fa.correo}) el ${new Date(fa.fechaFirma).toLocaleDateString('es-AR')}`
+        : "Pendiente";
+        
+      const asistenciaDetalle = p.huboClase === 'Sí' && p.asistencia
+        ? Object.entries(p.asistencia).map(([dni, estado]) => {
+            const alumno = alumnos.find(a => a.dni === dni);
+            const nombreAlumno = alumno ? alumno.nombre : "Desconocido";
+            return `${nombreAlumno} (${dni}): ${estado}`;
+          }).join(" | ")
+        : (p.huboClase === 'No' ? 'Clase Suspendida' : '-');
+        
+      return [
+        p.id,
+        p.fecha,
+        p.curso,
+        p.turno || (cursosConfig[p.curso]?.turno || ''),
+        p.horario || (cursosConfig[p.curso]?.horario || ''),
+        p.docenteNombre || (cursosConfig[p.curso]?.docenteNombre || ''),
+        p.huboClase,
+        p.claseNum,
+        p.unidad || '',
+        p.caracter || '',
+        p.dinamica || '',
+        p.contenido || '',
+        p.actividades || '',
+        p.observaciones || '',
+        p.motivoSuspension || '',
+        firmaDocenteText,
+        firmaAutoridadText,
+        totales.presentes,
+        totales.ausentes,
+        totales.total,
+        asistenciaDetalle
+      ];
+    });
+    
+    const csvContent = "\uFEFF" + 
+      [headers.join(";"), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(";"))].join("\n");
+      
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    
+    const filename = exportAll 
+      ? "partes_emitidos_historico_completo.csv" 
+      : `partes_emitidos_curso_${selectedCursoPartes}_${selectedMesPartes}.csv`;
+      
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const MESES = [
@@ -588,7 +665,7 @@ const PreceptorDashboard = () => {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
-                        <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
+                        <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
                         <th className="py-3 px-2 font-mono text-slate-400">DNI</th>
                         {diasClaseMes.map(d => {
                           const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
@@ -613,8 +690,8 @@ const PreceptorDashboard = () => {
                       {alumnosRegulares.map((al) => {
                         const stats = calcularEstadisticasAlumno(al.dni);
                         return (
-                          <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                            <td className="py-3 px-3 font-bold text-slate-800">
+                          <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
+                            <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                               {al.nombre}
                               {al.cursoOrigen !== selectedCurso && (
                                 <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-1.5 py-0.5 rounded text-[9px] font-bold">
@@ -700,7 +777,7 @@ const PreceptorDashboard = () => {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
-                        <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
+                        <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
                         <th className="py-3 px-2 text-slate-400 font-mono">DNI</th>
                         <th className="py-3 px-3 font-bold text-yellow-650">Curso de EF Destino</th>
                         <th className="py-3 px-3 font-bold text-slate-600">Turno y Horario</th>
@@ -760,8 +837,8 @@ const PreceptorDashboard = () => {
                         const detalleAsist = getDetalleAsistenciaReasignado(al);
 
                         return (
-                          <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                            <td className="py-3 px-3 font-bold text-slate-800">{al.nombre}</td>
+                          <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
+                            <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
                             <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
                             <td className="py-3 px-3">
                               <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[10px] font-bold">
@@ -830,7 +907,7 @@ const PreceptorDashboard = () => {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
-                        <th className="py-3 px-3 w-60">Estudiante (Apellido, Nombre)</th>
+                        <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
                         <th className="py-3 px-2 text-slate-400 font-mono">DNI</th>
                         <th className="py-3 px-3 font-bold text-red-750">Estado</th>
                         <th className="py-3 px-3 font-bold text-slate-600">Observaciones</th>
@@ -838,8 +915,8 @@ const PreceptorDashboard = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
                       {alumnosExceptuados.map((al) => (
-                        <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                          <td className="py-3 px-3 font-bold text-slate-850 line-through">{al.nombre}</td>
+                        <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
+                          <td className="py-3 px-3 font-bold text-slate-850 line-through sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
                           <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
                           <td className="py-3 px-3">
                             <span className="inline-block bg-red-50 text-red-700 border border-red-250 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
@@ -1325,7 +1402,7 @@ const PreceptorDashboard = () => {
 
             {/* Listado de Partes */}
             <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4 flex-wrap">
                 <div>
                   <h2 className="text-xl font-bold text-slate-850 font-display flex items-center gap-2">
                     <span>Partes Disponibles - Curso {selectedCursoPartes}</span>
@@ -1334,6 +1411,22 @@ const PreceptorDashboard = () => {
                     </span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">Historial y reporte de temas dictados, asistencia y novedades.</p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                  <button
+                    onClick={() => descargarPartesExcel(false)}
+                    className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm cursor-pointer"
+                  >
+                    <Download size={14} />
+                    <span>Exportar Filtrados (Excel)</span>
+                  </button>
+                  <button
+                    onClick={() => descargarPartesExcel(true)}
+                    className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-850 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm cursor-pointer"
+                  >
+                    <Download size={14} />
+                    <span>Exportar Todo (Excel)</span>
+                  </button>
                 </div>
               </div>
 
