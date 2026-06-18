@@ -58,6 +58,7 @@ const AdminPanel = () => {
   const [adminParteCaracter, setAdminParteCaracter] = useState('Práctica');
   const [adminParteDinamica, setAdminParteDinamica] = useState('Grupal');
   const [adminParteContenido, setAdminParteContenido] = useState('');
+  const [adminParteActividades, setAdminParteActividades] = useState('');
   const [adminParteObservaciones, setAdminParteObservaciones] = useState('');
   const [adminParteDocenteDni, setAdminParteDocenteDni] = useState('');
   const [adminParteAsistencia, setAdminParteAsistencia] = useState({});
@@ -234,6 +235,38 @@ const AdminPanel = () => {
       }));
     }
   }, [cursosConfig, docentesDisponibles]);
+
+  // Calcular número de clase automáticamente según fecha y temario en el panel de administración
+  React.useEffect(() => {
+    if (adminParteHuboClase === 'No') {
+      setAdminParteClaseNum('-');
+      return;
+    }
+    if (!adminParteSelectedCurso || !adminParteFecha) {
+      setAdminParteClaseNum('');
+      return;
+    }
+
+    // Filtrar otros partes del mismo curso que sí tuvieron clase
+    const otherParts = partes
+      .filter(p => p.curso === adminParteSelectedCurso && p.huboClase === 'Sí' && p.id !== adminParteEditingId)
+      .map(p => ({ id: p.id, fecha: p.fecha }));
+
+    // Crear ítem virtual del formulario actual
+    const virtualItem = { id: adminParteEditingId || 'temp', fecha: adminParteFecha };
+    const allItems = [...otherParts, virtualItem];
+
+    // Ordenar cronológicamente por fecha y estabilizar por ID
+    allItems.sort((a, b) => {
+      if (a.fecha !== b.fecha) {
+        return a.fecha.localeCompare(b.fecha);
+      }
+      return (a.id || '').localeCompare(b.id || '');
+    });
+
+    const index = allItems.findIndex(item => item.id === (adminParteEditingId || 'temp'));
+    setAdminParteClaseNum(String(index + 1));
+  }, [adminParteSelectedCurso, adminParteFecha, adminParteHuboClase, partes, adminParteEditingId]);
 
   // Manejar el cambio de curso de origen en matrícula de estudiantes para auto-calcular el turno
   const handleEstCursoOrigenChange = (cursoValue) => {
@@ -446,6 +479,7 @@ const AdminPanel = () => {
     setAdminParteCaracter('Práctica');
     setAdminParteDinamica('Grupal');
     setAdminParteContenido('');
+    setAdminParteActividades('');
     setAdminParteObservaciones('');
     setAdminParteFecha(new Date().toISOString().split('T')[0]);
 
@@ -479,6 +513,7 @@ const AdminPanel = () => {
     setAdminParteCaracter(parte.caracter || 'Práctica');
     setAdminParteDinamica(parte.dinamica || 'Grupal');
     setAdminParteContenido(parte.contenido || '');
+    setAdminParteActividades(parte.actividades || '');
     setAdminParteObservaciones(parte.observaciones || '');
     setAdminParteDocenteDni(parte.firmaDigital?.correo ? 
       (usuarios.find(u => u.correo === parte.firmaDigital.correo)?.dni || '') : 
@@ -507,6 +542,7 @@ const AdminPanel = () => {
     }
 
     let contenidoFinal = adminParteContenido.trim();
+    let actividadesFinal = '';
     let observacionesFinal = adminParteObservaciones.trim() || 'Sin observaciones.';
     let asistenciaFinal = { ...adminParteAsistencia };
     let claseNumFinal = adminParteClaseNum.trim();
@@ -528,6 +564,7 @@ const AdminPanel = () => {
       unidadFinal = '-';
       caracterFinal = '-';
       dinamicaFinal = '-';
+      actividadesFinal = '-';
       // Marcar todos como "-"
       alumnos.filter(al => al.cursoEF === adminParteSelectedCurso && !al.noCursaEF).forEach(al => {
         asistenciaFinal[al.dni] = '-';
@@ -536,6 +573,8 @@ const AdminPanel = () => {
       if (!claseNumFinal) { setAdminParteErrorMsg('El número de Clase es obligatorio.'); return; }
       if (!unidadFinal) { setAdminParteErrorMsg('La Unidad es obligatoria.'); return; }
       if (!contenidoFinal) { setAdminParteErrorMsg('El Tema Abordado es obligatorio.'); return; }
+      if (!adminParteActividades.trim()) { setAdminParteErrorMsg('Las Actividades que se desarrollan son obligatorias.'); return; }
+      actividadesFinal = adminParteActividades.trim();
     }
 
     const dateObj = new Date(adminParteFecha + 'T00:00:00');
@@ -572,6 +611,7 @@ const AdminPanel = () => {
         : '',
       asistencia: asistenciaFinal,
       contenido: contenidoFinal,
+      actividades: actividadesFinal,
       firmaDigital,
       firmaAutoridad: adminParteEditingId ? (partes.find(p => p.id === adminParteEditingId)?.firmaAutoridad || null) : null
     };
@@ -596,10 +636,10 @@ const AdminPanel = () => {
   };
 
   const descargarPartesCSVTemplate = () => {
-    const csvContent = "\uFEFF" + "fecha,curso,huboClase,claseNum,unidad,caracter,dinamica,contenido,observaciones,motivoSuspension,docenteDni,asistencia\n" +
-      "2026-05-20,1°1°,Sí,3,I,Práctica,Grupal,Iniciación al Voley: saques bajos y recepción,Sin incidentes,,333,10001:Presente;10002:Presente;10003:Ausente;10004:Presente\n" +
-      "2026-05-22,1°1°,No,,,,,,Clase suspendida por tormenta,Causas climáticas,333,\n" +
-      "2026-05-26,3°2°,Sí,1,I,Práctica,Parejas,Handball: pases y lanzamientos,Buen desempeño,,333,30002:Presente;30003:Ausente\n";
+    const csvContent = "\uFEFF" + "fecha,curso,huboClase,claseNum,unidad,caracter,dinamica,contenido,actividades,observaciones,motivoSuspension,docenteDni,asistencia\n" +
+      "2026-05-20,1°1°,Sí,3,I,Práctica,Grupal,Iniciación al Voley: saques bajos y recepción,Ejercicios de saque de arriba y saques de abajo con recepción en parejas,Sin incidentes,,333,10001:Presente;10002:Presente;10003:Ausente;10004:Presente\n" +
+      "2026-05-22,1°1°,No,,,,,,,Clase suspendida por tormenta,Causas climáticas,333,\n" +
+      "2026-05-26,3°2°,Sí,1,I,Práctica,Parejas,Handball: pases y lanzamientos,Ejercicios de pases sobre hombro a la carrera y lanzamientos suspendidos,Buen desempeño,,333,30002:Presente;30003:Ausente\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -659,6 +699,7 @@ const AdminPanel = () => {
       const idxCaracter = headers.indexOf('caracter');
       const idxDinamica = headers.indexOf('dinamica');
       const idxContenido = headers.indexOf('contenido');
+      const idxActividades = headers.indexOf('actividades');
       const idxObservaciones = headers.indexOf('observaciones');
       const idxMotivoSuspension = headers.indexOf('motivosuspension');
       const idxDocenteDni = headers.indexOf('docentedni');
@@ -708,6 +749,7 @@ const AdminPanel = () => {
         const caracterVal = idxCaracter !== -1 ? row[idxCaracter] : '';
         const dinamicaVal = idxDinamica !== -1 ? row[idxDinamica] : '';
         const contenidoVal = idxContenido !== -1 ? row[idxContenido] : '';
+        const actividadesVal = idxActividades !== -1 ? row[idxActividades] : '';
         const observacionesVal = idxObservaciones !== -1 ? row[idxObservaciones] : '';
         const motivoSuspensionVal = idxMotivoSuspension !== -1 ? row[idxMotivoSuspension] : '';
         const asistenciaVal = idxAsistencia !== -1 ? row[idxAsistencia] : '';
@@ -819,6 +861,7 @@ const AdminPanel = () => {
           motivoSuspension: huboClaseFinal === 'No' ? (motivoSuspensionVal || 'Causas climáticas') : '',
           asistencia: asistenciaMap,
           contenido: huboClaseFinal === 'Sí' ? (contenidoVal || 'Contenido de clase') : '',
+          actividades: huboClaseFinal === 'Sí' ? (actividadesVal || 'Actividades de clase') : '-',
           firmaDigital,
           firmaAutoridad: null
         };
@@ -2149,7 +2192,7 @@ const AdminPanel = () => {
                     <ul className="list-disc pl-4 space-y-1 text-slate-500">
                       <li>El archivo debe estar en formato <strong>CSV</strong> (valores separados por coma o punto y coma).</li>
                       <li>Columnas obligatorias: <strong>fecha</strong> (formato AAAA-MM-DD), <strong>curso</strong> (ej: 1°1°), <strong>huboClase</strong> (Sí/No) y <strong>docenteDni</strong>.</li>
-                      <li>Columnas opcionales de clase: <strong>claseNum, unidad, caracter, dinamica, contenido, observaciones, motivoSuspension</strong>.</li>
+                      <li>Columnas opcionales de clase: <strong>claseNum, unidad, caracter, dinamica, contenido, actividades, observaciones, motivoSuspension</strong>.</li>
                       <li>La columna <strong>asistencia</strong> debe contener la lista de alumnos con su estado en formato: <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px] font-mono">DNI:Estado</code> separados por punto y coma (ej: <code className="bg-slate-200 px-1 py-0.5 rounded text-[10px] font-mono">10001:Presente;10002:Ausente</code>).</li>
                       <li>El docente con el DNI especificado debe existir en el sistema con el rol <strong>Docente</strong>.</li>
                       <li>Si ya existe un parte para la misma fecha y curso, se actualizará automáticamente; de lo contrario, se creará uno nuevo.</li>
@@ -2418,10 +2461,10 @@ const AdminPanel = () => {
                         <span className="text-[11px] font-bold text-indigo-600 block uppercase tracking-wider">Campos del Libro de Temas</span>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Clase N° <span className="text-red-500">*</span></label>
-                            <input type="text" value={adminParteClaseNum} onChange={e => setAdminParteClaseNum(e.target.value)}
-                              placeholder="Ej. 1" required
-                              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition-all font-mono" />
+                            <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Clase N°</label>
+                            <input type="text" value={adminParteClaseNum} readOnly
+                              placeholder="Autocalculado"
+                              className="w-full bg-slate-50 border border-slate-200 text-slate-500 rounded-xl px-3 py-2 text-xs cursor-not-allowed font-mono font-bold" />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Unidad <span className="text-red-500">*</span></label>
@@ -2443,18 +2486,24 @@ const AdminPanel = () => {
                               className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition-all" />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tema Abordado <span className="text-red-500">*</span></label>
                             <textarea value={adminParteContenido} onChange={e => setAdminParteContenido(e.target.value)}
                               placeholder="Describa el contenido de la clase..." rows={2} required
-                              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition-all leading-relaxed" />
+                              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition-all leading-relaxed font-semibold" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Actividades que se desarrollan <span className="text-red-500">*</span></label>
+                            <textarea value={adminParteActividades} onChange={e => setAdminParteActividades(e.target.value)}
+                              placeholder="Describa las actividades físicas, ejercicios o juegos..." rows={2} required
+                              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition-all leading-relaxed font-semibold" />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Observaciones</label>
                             <textarea value={adminParteObservaciones} onChange={e => setAdminParteObservaciones(e.target.value)}
                               placeholder="Incidentes, conducta, justificaciones... (Opcional)" rows={2}
-                              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition-all leading-relaxed" />
+                              className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition-all leading-relaxed font-semibold" />
                           </div>
                         </div>
                       </div>

@@ -57,6 +57,38 @@ const DocenteAsistencia = () => {
     return partes.filter(p => cursosAsignados.includes(p.curso));
   }, [partes, cursosAsignados]);
 
+  // Calcular número de clase automáticamente según fecha y temario
+  useEffect(() => {
+    if (huboClase === 'No') {
+      setClaseNum('-');
+      return;
+    }
+    if (!selectedCurso || !fecha) {
+      setClaseNum('');
+      return;
+    }
+
+    // Filtrar otros partes del mismo curso que sí tuvieron clase
+    const otherParts = partes
+      .filter(p => p.curso === selectedCurso && p.huboClase === 'Sí' && p.id !== isEditingParteId)
+      .map(p => ({ id: p.id, fecha: p.fecha }));
+
+    // Crear ítem virtual del formulario actual
+    const virtualItem = { id: isEditingParteId || 'temp', fecha };
+    const allItems = [...otherParts, virtualItem];
+
+    // Ordenar cronológicamente por fecha y estabilizar por ID
+    allItems.sort((a, b) => {
+      if (a.fecha !== b.fecha) {
+        return a.fecha.localeCompare(b.fecha);
+      }
+      return (a.id || '').localeCompare(b.id || '');
+    });
+
+    const index = allItems.findIndex(item => item.id === (isEditingParteId || 'temp'));
+    setClaseNum(String(index + 1));
+  }, [selectedCurso, fecha, huboClase, partes, isEditingParteId]);
+
   const handleEditParteClick = (parte) => {
     setIsEditingParteId(parte.id);
     setSelectedCurso(parte.curso);
@@ -582,14 +614,13 @@ const DocenteAsistencia = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Clase N° <span className="text-red-500">*</span></label>
+                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">Clase N°</label>
                       <input
                         type="text"
                         value={claseNum}
-                        onChange={(e) => setClaseNum(e.target.value)}
-                        placeholder="Ej. 1"
-                        required
-                        className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all font-mono"
+                        readOnly
+                        placeholder="Autocalculado"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-500 rounded-xl px-3 py-2 text-xs cursor-not-allowed font-mono font-bold"
                       />
                     </div>
 

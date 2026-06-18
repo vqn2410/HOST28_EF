@@ -573,11 +573,48 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const partesWithClaseNum = React.useMemo(() => {
+    // Agrupar partes por curso
+    const partsByCourse = {};
+    partes.forEach(p => {
+      if (!partsByCourse[p.curso]) {
+        partsByCourse[p.curso] = [];
+      }
+      partsByCourse[p.curso].push(p);
+    });
+
+    const processedPartes = [];
+
+    Object.keys(partsByCourse).forEach(curso => {
+      const courseParts = partsByCourse[curso];
+      // Ordenar cronológicamente por fecha (de más vieja a más nueva)
+      // Si la fecha es igual, ordenar por ID para consistencia estable
+      const sortedParts = [...courseParts].sort((a, b) => {
+        if (a.fecha !== b.fecha) {
+          return a.fecha.localeCompare(b.fecha);
+        }
+        return (a.id || '').localeCompare(b.id || '');
+      });
+
+      let claseCount = 0;
+      sortedParts.forEach(p => {
+        if (p.huboClase === 'Sí') {
+          claseCount++;
+          processedPartes.push({ ...p, claseNum: String(claseCount) });
+        } else {
+          processedPartes.push({ ...p, claseNum: '-' });
+        }
+      });
+    });
+
+    return processedPartes;
+  }, [partes]);
+
   return (
     <SchoolDataContext.Provider value={{
       alumnos,
       cursosConfig,
-      partes,
+      partes: partesWithClaseNum,
       solicitudesFaltantes,
       informes,
       notificaciones,

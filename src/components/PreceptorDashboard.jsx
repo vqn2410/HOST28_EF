@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown } from 'lucide-react';
+import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 
 const PreceptorDashboard = () => {
   const { 
@@ -19,6 +19,7 @@ const PreceptorDashboard = () => {
   // Navegación de Pestañas
   const [activeTab, setActiveTab] = useState('planilla'); // 'planilla' | 'solicitudes' | 'informes' | 'partes'
   const [selectedParteDetail, setSelectedParteDetail] = useState(null);
+  const [showModalCurricular, setShowModalCurricular] = useState(false);
 
   // Estados para pestaña Partes
   const [selectedCursoPartes, setSelectedCursoPartes] = useState(() => {
@@ -1077,7 +1078,7 @@ const PreceptorDashboard = () => {
                                         {completedParte && (
                                           <button
                                             type="button"
-                                            onClick={() => setSelectedParteDetail(completedParte)}
+                                            onClick={() => { setSelectedParteDetail(completedParte); setShowModalCurricular(false); }}
                                             className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[9px] px-2.5 py-1 rounded-xl transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
                                           >
                                             Ver Reporte
@@ -1414,7 +1415,7 @@ const PreceptorDashboard = () => {
 
                           <button
                             type="button"
-                            onClick={() => setSelectedParteDetail(parte)}
+                            onClick={() => { setSelectedParteDetail(parte); setShowModalCurricular(false); }}
                             className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-1"
                           >
                             <span>Detalle</span>
@@ -1448,7 +1449,7 @@ const PreceptorDashboard = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedParteDetail(null)}
+                onClick={() => { setSelectedParteDetail(null); setShowModalCurricular(false); }}
                 className="text-slate-400 hover:text-slate-650 bg-slate-50 hover:bg-slate-100 p-2 rounded-full border border-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
               >
                 <X size={16} />
@@ -1457,7 +1458,7 @@ const PreceptorDashboard = () => {
 
             <div className="space-y-5 text-left">
               {/* Grid de Datos Técnicos */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
                 <div>
                   <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400">Fecha Clase</span>
                   <span className="font-extrabold text-slate-800 font-mono">
@@ -1471,70 +1472,14 @@ const PreceptorDashboard = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400">Clase N° y Unidad</span>
-                  <span className="font-bold text-slate-700 font-mono">
-                    Clase {selectedParteDetail.claseNum} • U. {selectedParteDetail.unidad}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400">Estado Clase</span>
-                  <span className={`inline-block font-extrabold px-2 py-0.5 rounded text-[10px] mt-0.5 ${
-                    selectedParteDetail.huboClase === 'Sí'
-                      ? 'bg-accent-50 text-accent-700 border border-accent-200'
-                      : 'bg-red-50 text-red-700 border border-red-200'
-                  }`}>
-                    {selectedParteDetail.huboClase === 'Sí' ? 'Dictada' : 'Suspendida'}
+                  <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400">Docente a cargo</span>
+                  <span className="font-bold text-slate-700 font-sans">
+                    Prof. {selectedParteDetail.docenteNombre}
                   </span>
                 </div>
               </div>
 
-              {/* Tema / Contenido Abordado */}
-              <div className="space-y-1.5">
-                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                  Tema Abordado (Contenido Curricular):
-                </span>
-                <div className="bg-primary-500/5 border border-primary-500/10 p-4 rounded-2xl text-xs text-slate-800 font-sans leading-relaxed font-semibold">
-                  {selectedParteDetail.contenido}
-                </div>
-              </div>
-
-              {/* Actividades que se desarrollan */}
-              <div className="space-y-1.5">
-                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                  Actividades que se desarrollan:
-                </span>
-                <div className="bg-primary-500/5 border border-primary-500/10 p-4 rounded-2xl text-xs text-slate-800 font-sans leading-relaxed font-semibold font-semibold">
-                  {selectedParteDetail.actividades || '-'}
-                </div>
-              </div>
-
-              {/* Dinámica y Carácter */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Carácter</span>
-                  <span className="inline-block bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl text-xs font-bold text-slate-700">
-                    {selectedParteDetail.caracter}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dinámica</span>
-                  <span className="inline-block bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl text-xs font-bold text-slate-700">
-                    {selectedParteDetail.dinamica}
-                  </span>
-                </div>
-              </div>
-
-              {/* Observaciones */}
-              <div className="space-y-1.5">
-                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                  Observaciones de Cursada:
-                </span>
-                <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed italic">
-                  {selectedParteDetail.observaciones || 'Sin observaciones registradas.'}
-                </div>
-              </div>
-
-              {/* Desglose de Asistencia y Detalle de Estudiantes */}
+              {/* Desglose de Asistencia y Detalle de Estudiantes (Prioritario) */}
               <div className="space-y-4">
                 <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
                   Desglose de Asistencia y Estudiantes:
@@ -1631,6 +1576,91 @@ const PreceptorDashboard = () => {
                 </div>
               </div>
 
+              {/* Detalle Curricular Acordeón (Temas, Unidad, etc. - Contraído por defecto) */}
+              <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowModalCurricular(!showModalCurricular)}
+                  className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-all font-bold text-slate-700 text-xs uppercase tracking-wide cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={14} className="text-primary-500 animate-pulse-once" />
+                    <span>Detalle Curricular (Temas, Unidad, Actividades, Obs.)</span>
+                  </div>
+                  {showModalCurricular ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                
+                {showModalCurricular && (
+                  <div className="p-4 border-t border-slate-200 space-y-4 bg-white text-left animate-fade-in text-xs">
+                    {/* Clase N° y Unidad */}
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-3">
+                      <div>
+                        <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400">Clase N° y Unidad</span>
+                        <span className="font-bold text-slate-700 font-mono text-xs">
+                          Clase {selectedParteDetail.claseNum} • U. {selectedParteDetail.unidad}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400">Estado de Clase</span>
+                        <span className={`inline-block font-extrabold px-2 py-0.5 rounded text-[10px] mt-0.5 ${
+                          selectedParteDetail.huboClase === 'Sí'
+                            ? 'bg-accent-50 text-accent-700 border border-accent-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                          {selectedParteDetail.huboClase === 'Sí' ? 'Dictada' : 'Suspendida'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tema / Contenido Abordado */}
+                    <div className="space-y-1.5">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                        Tema Abordado (Contenido Curricular):
+                      </span>
+                      <div className="bg-primary-500/5 border border-primary-500/10 p-4 rounded-2xl text-xs text-slate-800 font-sans leading-relaxed font-semibold">
+                        {selectedParteDetail.contenido || selectedParteDetail.temaAbordado || 'Sin cargar.'}
+                      </div>
+                    </div>
+
+                    {/* Actividades que se desarrollan */}
+                    <div className="space-y-1.5">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                        Actividades que se desarrollan:
+                      </span>
+                      <div className="bg-primary-500/5 border border-primary-500/10 p-4 rounded-2xl text-xs text-slate-800 font-sans leading-relaxed font-semibold">
+                        {selectedParteDetail.actividades || '-'}
+                      </div>
+                    </div>
+
+                    {/* Dinámica y Carácter */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Carácter de Clase</span>
+                        <span className="inline-block bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl text-xs font-bold text-slate-700">
+                          {selectedParteDetail.caracter}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Dinámica</span>
+                        <span className="inline-block bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl text-xs font-bold text-slate-700">
+                          {selectedParteDetail.dinamica}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Observaciones */}
+                    <div className="space-y-1.5">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                        Observaciones:
+                      </span>
+                      <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed italic">
+                        {selectedParteDetail.observaciones || 'Sin observaciones registradas.'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Firma del Profesor */}
               <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 p-4.5 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-xl"></div>
@@ -1653,7 +1683,7 @@ const PreceptorDashboard = () => {
             <div className="mt-6 pt-4 border-t border-slate-150 flex justify-end">
               <button
                 type="button"
-                onClick={() => setSelectedParteDetail(null)}
+                onClick={() => { setSelectedParteDetail(null); setShowModalCurricular(false); }}
                 className="bg-slate-100 hover:bg-slate-200 text-slate-750 font-bold text-xs px-5 py-2.5 rounded-xl border border-slate-200 transition-all cursor-pointer active:scale-95"
               >
                 Cerrar Reporte
