@@ -12,7 +12,8 @@ const PreceptorDashboard = () => {
     solicitudesFaltantes,
     agregarSolicitudParteFaltante,
     notificaciones = [],
-    marcarNotificacionLeida
+    marcarNotificacionLeida,
+    setParteToEditGlobal
   } = useSchoolData();
   const { user } = useAuth();
 
@@ -1016,6 +1017,7 @@ const PreceptorDashboard = () => {
                     <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Fecha Faltante</label>
                     <input
                       type="date"
+                      max={new Date().toISOString().split('T')[0]}
                       value={solFecha}
                       onChange={e => setSolFecha(e.target.value)}
                       className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none font-mono font-semibold"
@@ -1133,13 +1135,27 @@ const PreceptorDashboard = () => {
                                           Completado
                                         </span>
                                         {completedParte && (
-                                          <button
-                                            type="button"
-                                            onClick={() => { setSelectedParteDetail(completedParte); setShowModalCurricular(false); }}
-                                            className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[9px] px-2.5 py-1 rounded-xl transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
-                                          >
-                                            Ver Reporte
-                                          </button>
+                                          <div className="flex items-center gap-1.5">
+                                            {user?.rol === 'Equipo de Conducción' && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setParteToEditGlobal(completedParte);
+                                                  window.location.hash = '#/admin';
+                                                }}
+                                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[9px] px-2.5 py-1 rounded-xl transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap border border-slate-200"
+                                              >
+                                                Editar
+                                              </button>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => { setSelectedParteDetail(completedParte); setShowModalCurricular(false); }}
+                                              className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[9px] px-2.5 py-1 rounded-xl transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap"
+                                            >
+                                              Ver Reporte
+                                            </button>
+                                          </div>
                                         )}
                                       </>
                                     ) : (
@@ -1483,14 +1499,29 @@ const PreceptorDashboard = () => {
                             )}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => { setSelectedParteDetail(parte); setShowModalCurricular(false); }}
-                            className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-1"
-                          >
-                            <span>Detalle</span>
-                            <ChevronRight size={12} />
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            {user?.rol === 'Equipo de Conducción' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setParteToEditGlobal(parte);
+                                  window.location.hash = '#/admin';
+                                }}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-1 border border-slate-200"
+                                title="Editar parte en el Panel de Administración"
+                              >
+                                <span>Editar</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedParteDetail(parte); setShowModalCurricular(false); }}
+                              className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-1"
+                            >
+                              <span>Detalle</span>
+                              <ChevronRight size={12} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );

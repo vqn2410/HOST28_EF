@@ -755,6 +755,7 @@ const DocenteAsistencia = () => {
                 <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Fecha del Parte</label>
                 <input
                   type="date"
+                  max={new Date().toISOString().split('T')[0]}
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
                   className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/5 transition-all"
@@ -1144,6 +1145,7 @@ const DocenteAsistencia = () => {
                 </div>
                 <input
                   type="date"
+                  max={new Date().toISOString().split('T')[0]}
                   value={fechaInasistencia}
                   onChange={(e) => setFechaInasistencia(e.target.value)}
                   className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-red-500 transition-all"

@@ -227,6 +227,7 @@ export const SchoolDataProvider = ({ children }) => {
   const [solicitudesFaltantes, setSolicitudesFaltantes] = useState([]);
   const [informes, setInformes] = useState([]);
   const [notificaciones, setNotificaciones] = useState([]);
+  const [parteToEditGlobal, setParteToEditGlobal] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Sincronizar todos los datos con Firebase Firestore al montar el componente
@@ -631,6 +632,8 @@ export const SchoolDataProvider = ({ children }) => {
       eliminarCursoConfig,
       agregarSolicitudParteFaltante,
       marcarNotificacionLeida,
+      parteToEditGlobal,
+      setParteToEditGlobal,
       loading
     }}>
       {children}

@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF } = useSchoolData();
+  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal } = useSchoolData();
   const { user, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario } = useAuth();
 
   // Estados para el modo de edición
@@ -527,6 +527,17 @@ const AdminPanel = () => {
     });
     setAdminParteAsistencia(initialAsistencia);
   };
+
+  useEffect(() => {
+    if (parteToEditGlobal && activeTab !== 'partes_crear') {
+      setActiveTab('partes_crear');
+      handleAdminParteEditClick(parteToEditGlobal);
+      setParteToEditGlobal(null);
+    } else if (parteToEditGlobal && activeTab === 'partes_crear') {
+      handleAdminParteEditClick(parteToEditGlobal);
+      setParteToEditGlobal(null);
+    }
+  }, [parteToEditGlobal, activeTab, setParteToEditGlobal]);
 
   const handleAdminParteEditClick = (parte) => {
     setAdminParteSelectedCurso(parte.curso);
@@ -1435,6 +1446,7 @@ const AdminPanel = () => {
                       <label className="block text-[10px] font-bold text-slate-655 text-slate-600 uppercase mb-1">F. Nacimiento</label>
                       <input
                         type="date"
+                        max={new Date().toISOString().split('T')[0]}
                         value={usrForm.fechaNac}
                         onChange={e => setUsrForm({...usrForm, fechaNac: e.target.value})}
                         className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none font-mono"
@@ -2498,6 +2510,7 @@ const AdminPanel = () => {
                       <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Fecha del Parte</label>
                       <input
                         type="date"
+                        max={new Date().toISOString().split('T')[0]}
                         value={adminParteFecha}
                         onChange={(e) => setAdminParteFecha(e.target.value)}
                         className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-indigo-500 transition-all"
