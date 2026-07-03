@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search } from 'lucide-react';
 
 const AdminPanel = () => {
-  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal } = useSchoolData();
+  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal, feriados, agregarFeriado, eliminarFeriado } = useSchoolData();
   const { user, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario } = useAuth();
 
   // Estados para el modo de edición
@@ -13,6 +13,11 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState(() => {
     return user?.rol === 'Preceptor' ? 'estudiantes_carga' : 'usuarios_carga';
   });
+
+  // Estados para Feriados
+  const [feriadoFecha, setFeriadoFecha] = useState('');
+  const [feriadoDesc, setFeriadoDesc] = useState('');
+  const [feriadoSuccess, setFeriadoSuccess] = useState('');
 
   // Estados para la carga del CSV en tiempo real
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -485,6 +490,16 @@ const AdminPanel = () => {
   };
 
   // ─────────── Handlers para el formulario de Creación de Parte (Admin) ───────────
+
+  const handleFeriadoSubmit = async (e) => {
+    e.preventDefault();
+    if (!feriadoFecha || !feriadoDesc.trim()) return;
+    await agregarFeriado({ fecha: feriadoFecha, descripcion: feriadoDesc.trim() });
+    setFeriadoSuccess('Feriado agregado con éxito.');
+    setFeriadoFecha('');
+    setFeriadoDesc('');
+    setTimeout(() => setFeriadoSuccess(''), 3000);
+  };
 
   const handleCloseAdminParteSuccessModal = () => {
     setAdminParteShowSuccessModal(false);
@@ -1314,7 +1329,8 @@ const AdminPanel = () => {
       { id: 'cursos_carga', label: 'Asignación Curricular EF', icon: CalendarRange, color: 'text-yellow-600' },
       { id: 'cursos_lista', label: 'Cursos de Educación Física', icon: CalendarRange, color: 'text-yellow-600' },
       { id: 'partes_carga_masiva', label: 'Carga Masiva de Partes', icon: Upload, color: 'text-red-500' },
-      { id: 'partes_crear', label: 'Crear Parte', icon: UserPlus, color: 'text-indigo-500' }
+      { id: 'partes_crear', label: 'Crear Parte', icon: UserPlus, color: 'text-indigo-500' },
+      { id: 'feriados_carga', label: 'Carga de Feriados', icon: CalendarRange, color: 'text-green-500' }
     ];
 
     if (user?.rol === 'Preceptor') {
@@ -2962,6 +2978,65 @@ const AdminPanel = () => {
             >
               Entendido
             </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'feriados_carga' && (
+        <div className="max-w-4xl mx-auto animate-fade-in space-y-6">
+          <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
+            <h2 className="text-xl font-bold text-slate-900 font-display mb-4">Cargar Nuevo Feriado / Fecha Patria</h2>
+            {feriadoSuccess && (
+              <div className="mb-4 p-3 bg-accent-500/10 border border-accent-500/20 text-accent-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+                <CheckCircle2 size={14} />
+                <span>{feriadoSuccess}</span>
+              </div>
+            )}
+            <form onSubmit={handleFeriadoSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Fecha</label>
+                <input type="date" value={feriadoFecha} onChange={(e) => setFeriadoFecha(e.target.value)} required className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary-500 transition-all" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Descripción</label>
+                <input type="text" value={feriadoDesc} onChange={(e) => setFeriadoDesc(e.target.value)} required placeholder="Ej: Revolución de Mayo" className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary-500 transition-all" />
+              </div>
+              <div>
+                <button type="submit" className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition-all shadow-md cursor-pointer h-[38px]">
+                  Agregar Feriado
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
+            <h2 className="text-xl font-bold text-slate-900 font-display mb-4">Feriados Cargados</h2>
+            {feriados && feriados.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold uppercase">
+                      <th className="py-3 px-3">Fecha</th>
+                      <th className="py-3 px-3">Descripción</th>
+                      <th className="py-3 px-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {feriados.map(f => (
+                      <tr key={f.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+                        <td className="py-3 px-3">{f.descripcion}</td>
+                        <td className="py-3 px-3 text-right">
+                          <button onClick={() => eliminarFeriado(f.id)} className="p-1.5 text-red-500 hover:text-red-750 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer" title="Eliminar Feriado"><Trash2 size={14} /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 text-center py-4">No hay feriados cargados.</p>
+            )}
           </div>
         </div>
       )}

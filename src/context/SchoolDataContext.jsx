@@ -220,6 +220,11 @@ const INITIAL_INFORMES = [
   }
 ];
 
+// Feriados semilla
+const INITIAL_FERIADOS = [
+  { id: "f1", fecha: "2026-05-25", descripcion: "Revolución de Mayo" }
+];
+
 export const SchoolDataProvider = ({ children }) => {
   const [alumnos, setAlumnos] = useState([]);
   const [cursosConfig, setCursosConfig] = useState({});
@@ -227,6 +232,7 @@ export const SchoolDataProvider = ({ children }) => {
   const [solicitudesFaltantes, setSolicitudesFaltantes] = useState([]);
   const [informes, setInformes] = useState([]);
   const [notificaciones, setNotificaciones] = useState([]);
+  const [feriados, setFeriados] = useState([]);
   const [parteToEditGlobal, setParteToEditGlobal] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -276,6 +282,13 @@ export const SchoolDataProvider = ({ children }) => {
         listNotif.sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
         setNotificaciones(listNotif);
 
+        // 7. Cargar Feriados
+        const snapFeriados = await getDocs(collection(db, "feriados"));
+        const listFeriados = [];
+        snapFeriados.forEach(doc => listFeriados.push(doc.data()));
+        listFeriados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        setFeriados(listFeriados);
+
       } catch (error) {
         console.error("Error al cargar datos escolares desde Firebase:", error);
         
@@ -297,6 +310,9 @@ export const SchoolDataProvider = ({ children }) => {
 
         const localNotificaciones = localStorage.getItem('host28_notificaciones');
         setNotificaciones(localNotificaciones ? JSON.parse(localNotificaciones) : []);
+
+        const localFeriados = localStorage.getItem('host28_feriados');
+        setFeriados(localFeriados ? JSON.parse(localFeriados) : INITIAL_FERIADOS);
       } finally {
         setLoading(false);
       }
@@ -330,6 +346,9 @@ export const SchoolDataProvider = ({ children }) => {
     if (notificaciones.length > 0) localStorage.setItem('host28_notificaciones', JSON.stringify(notificaciones));
   }, [notificaciones]);
 
+  useEffect(() => {
+    if (feriados.length > 0) localStorage.setItem('host28_feriados', JSON.stringify(feriados));
+  }, [feriados]);
 
   const agregarEstudiante = async (nuevoEstudiante) => {
     const studentObj = {
@@ -574,6 +593,30 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const agregarFeriado = async (nuevoFeriado) => {
+    const id = `feriado_${Date.now()}`;
+    const feriadoObj = { id, ...nuevoFeriado };
+    try {
+      await setDoc(doc(db, "feriados", id), feriadoObj);
+      setFeriados((prev) => [...prev, feriadoObj]);
+    } catch (error) {
+      console.error("Error al agregar feriado en Firebase:", error);
+      // Fallback
+      setFeriados((prev) => [...prev, feriadoObj]);
+    }
+  };
+
+  const eliminarFeriado = async (feriadoId) => {
+    try {
+      await deleteDoc(doc(db, "feriados", feriadoId));
+      setFeriados((prev) => prev.filter((f) => f.id !== feriadoId));
+    } catch (error) {
+      console.error("Error al eliminar feriado en Firebase:", error);
+      // Fallback
+      setFeriados((prev) => prev.filter((f) => f.id !== feriadoId));
+    }
+  };
+
   const partesWithClaseNum = React.useMemo(() => {
     // Agrupar partes por curso
     const partsByCourse = {};
@@ -619,6 +662,7 @@ export const SchoolDataProvider = ({ children }) => {
       solicitudesFaltantes,
       informes,
       notificaciones,
+      feriados,
       agregarEstudiante,
       agregarEstudiantesBatch,
       actualizarEstudiante,
@@ -632,6 +676,8 @@ export const SchoolDataProvider = ({ children }) => {
       eliminarCursoConfig,
       agregarSolicitudParteFaltante,
       marcarNotificacionLeida,
+      agregarFeriado,
+      eliminarFeriado,
       parteToEditGlobal,
       setParteToEditGlobal,
       loading

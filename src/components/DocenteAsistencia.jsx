@@ -5,7 +5,7 @@ import { Check, X, FileSignature, CheckCircle2, ChevronRight, AlertCircle, Alert
 
 const DocenteAsistencia = () => {
   const { user } = useAuth();
-  const { alumnos, guardarParteEF, actualizarParteEF, eliminarParteEF, partes = [], cursosConfig, solicitudesFaltantes } = useSchoolData();
+  const { alumnos, guardarParteEF, actualizarParteEF, eliminarParteEF, partes = [], cursosConfig, solicitudesFaltantes, feriados } = useSchoolData();
 
   // Estados del Formulario
   const [selectedCurso, setSelectedCurso] = useState(null);
@@ -151,7 +151,7 @@ const DocenteAsistencia = () => {
   };
 
   const CARACTERES = ['Práctica', 'Teórica', 'Teórica-Práctica', 'Evaluativa', 'Recreativa'];
-  const SUSPENSION_MOTIVOS = ['Licencia Médica', 'Causas climáticas', 'Otros'];
+  const SUSPENSION_MOTIVOS = ['Licencia Médica', 'Causas climáticas', 'Feriado / Fecha Patria', 'Otros'];
 
   // Computar cursos asignados dinámicamente
   const cursosAsignados = useMemo(() => {
@@ -227,6 +227,24 @@ const DocenteAsistencia = () => {
       setErrorMsg('');
     }
   }, [selectedCurso, fecha, isEditingParteId, partes]);
+
+  const feriadoDelDia = useMemo(() => {
+    if (!feriados) return null;
+    return feriados.find(f => f.fecha === fecha);
+  }, [feriados, fecha]);
+
+  const isFeriado = !!feriadoDelDia;
+
+  useEffect(() => {
+    if (feriadoDelDia) {
+      setHuboClase('No');
+      setMotivoSuspension('Feriado / Fecha Patria');
+      setOtroMotivoText(feriadoDelDia.descripcion);
+    } else if (huboClase === 'No' && motivoSuspension === 'Feriado / Fecha Patria') {
+      setMotivoSuspension('Licencia Médica');
+      setOtroMotivoText('');
+    }
+  }, [feriadoDelDia, huboClase, motivoSuspension]);
 
   const handleEditParteClick = (parte) => {
     setIsEditingParteId(parte.id);
@@ -706,19 +724,32 @@ const DocenteAsistencia = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             
+            {isFeriado && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-800 text-sm rounded-2xl flex items-center gap-3 font-semibold animate-fade-in">
+                <Calendar className="text-amber-600 shrink-0" size={20} />
+                <div>
+                  <span className="font-bold block">Feriado / Fecha Patria: {feriadoDelDia.descripcion}</span>
+                  <span className="text-[11px] font-normal">La fecha seleccionada corresponde a un feriado. La toma de asistencia se ha deshabilitado y el parte se registrará como clase suspendida.</span>
+                </div>
+              </div>
+            )}
+
             {/* PREGUNTA CRÍTICA: ¿HUBO CLASES HOY? */}
-            <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">
+            <div className={`border p-5 rounded-2xl ${isFeriado ? 'bg-slate-100 border-slate-200 opacity-80' : 'bg-slate-50 border-slate-200'}`}>
               <span className="block text-[11px] font-black text-slate-600 uppercase tracking-wider mb-3 text-center">
                 ¿Hubo clases de Educación Física el día de hoy? <span className="text-red-500">*</span>
               </span>
               <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
                 <button
                   type="button"
+                  disabled={isFeriado}
                   onClick={() => setHuboClase('Sí')}
-                  className={`py-3.5 px-4 rounded-xl border font-bold text-xs uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    huboClase === 'Sí'
-                      ? 'bg-accent-500 border-accent-600 text-white shadow-md shadow-accent-500/10'
-                      : 'bg-white border-slate-250 text-slate-500 hover:bg-slate-100 hover:text-slate-700 border-slate-200'
+                  className={`py-3.5 px-4 rounded-xl border font-bold text-xs uppercase transition-all flex items-center justify-center gap-2 ${
+                    isFeriado 
+                      ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed'
+                      : huboClase === 'Sí'
+                        ? 'bg-accent-500 border-accent-600 text-white shadow-md shadow-accent-500/10 cursor-pointer'
+                        : 'bg-white border-slate-250 text-slate-500 hover:bg-slate-100 hover:text-slate-700 border-slate-200 cursor-pointer'
                   }`}
                 >
                   <Check size={16} />
@@ -726,11 +757,14 @@ const DocenteAsistencia = () => {
                 </button>
                 <button
                   type="button"
+                  disabled={isFeriado}
                   onClick={() => setHuboClase('No')}
-                  className={`py-3.5 px-4 rounded-xl border font-bold text-xs uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    huboClase === 'No'
-                      ? 'bg-red-500 border-red-600 text-white shadow-md shadow-red-500/10'
-                      : 'bg-white border-slate-250 text-slate-500 hover:bg-slate-100 hover:text-slate-700 border-slate-200'
+                  className={`py-3.5 px-4 rounded-xl border font-bold text-xs uppercase transition-all flex items-center justify-center gap-2 ${
+                    isFeriado
+                      ? 'bg-red-500 border-red-600 text-white shadow-md shadow-red-500/10 cursor-not-allowed'
+                      : huboClase === 'No'
+                        ? 'bg-red-500 border-red-600 text-white shadow-md shadow-red-500/10 cursor-pointer'
+                        : 'bg-white border-slate-250 text-slate-500 hover:bg-slate-100 hover:text-slate-700 border-slate-200 cursor-pointer'
                   }`}
                 >
                   <X size={16} />

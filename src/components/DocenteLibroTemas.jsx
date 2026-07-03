@@ -59,6 +59,7 @@ const DocenteLibroTemas = () => {
   ], []);
   const MESES = [
     { value: "Todos", label: "Todos los Meses" },
+    { value: "02", label: "Febrero" },
     { value: "03", label: "Marzo" },
     { value: "04", label: "Abril" },
     { value: "05", label: "Mayo" },
@@ -67,7 +68,8 @@ const DocenteLibroTemas = () => {
     { value: "08", label: "Agosto" },
     { value: "09", label: "Septiembre" },
     { value: "10", label: "Octubre" },
-    { value: "11", label: "Noviembre" }
+    { value: "11", label: "Noviembre" },
+    { value: "12", label: "Diciembre" }
   ];
 
   // Permisos de Cursos: computar dinámicamente según la asignación administrativa
@@ -106,17 +108,17 @@ const DocenteLibroTemas = () => {
       correo: user.correo,
       fechaFirma: new Date().toISOString()
     };
-    
+
     const clickedIndex = partesFiltrados.findIndex(p => p.id === parteId);
     if (clickedIndex === -1) return;
-    
+
     // Obtener el parte clickeado y todos los anteriores en orden cronológico (los de "arriba")
     const partesAVisar = partesFiltrados.slice(0, clickedIndex + 1).filter(p => !p.firmaAutoridad);
-    
+
     if (partesAVisar.length > 0) {
       await Promise.all(partesAVisar.map(p => firmarAutoridadParte(p.id, firmaAutoridadObj)));
     }
-    
+
     setShowSuccessModal(true);
   };
 
@@ -472,87 +474,86 @@ const DocenteLibroTemas = () => {
                 {partesFiltrados.map((parte) => {
                   const isInasistencia = parte.huboClase === 'No' || parte.contenido?.includes('[INASISTENCIA DOCENTE]');
                   return (
-                    <tr 
-                      key={parte.id} 
-                      className={`transition-colors align-top ${
-                        isInasistencia 
-                          ? "bg-red-50/85 hover:bg-red-100/70 print:bg-red-50/50" 
-                          : "hover:bg-slate-50"
-                      }`}
+                    <tr
+                      key={parte.id}
+                      className={`transition-colors align-top ${isInasistencia
+                        ? "bg-red-50/85 hover:bg-red-100/70 print:bg-red-50/50"
+                        : "hover:bg-slate-50"
+                        }`}
                     >
-                    <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
-                      {parte.dia || parte.fecha.split('-')[2]}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-1 text-center font-bold text-slate-900">
-                      {parte.mes || 'Mayo'}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
-                      {parte.fecha ? parte.fecha.split('-')[0] : '2026'}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
-                      {parte.claseNum || '1'}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
-                      {parte.unidad || 'I'}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-2 text-center text-[9px] font-bold text-slate-700">
-                      {parte.caracter || 'Práctica'}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-950 text-[10px] font-sans font-bold">
-                      {parte.contenido}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-850 text-[10px] font-sans font-semibold">
-                      {parte.actividades || '-'}
-                    </td>
-                    <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-800 font-bold leading-normal">
-                      {parte.dinamica || 'Grupal'}
-                    </td>
-                    <td className="border border-slate-900 py-1.5 px-1 text-center">
-                       {parte.firmaDigital ? (
-                         <div className="bg-accent-50 border border-accent-300 rounded p-1 text-[7px] font-mono text-accent-850 font-bold leading-tight">
-                           <span className="block font-black text-accent-700 mb-0.5">VERIFICADA ✔</span>
-                           <span className="block text-slate-900">{parte.firmaDigital.nombre} {parte.firmaDigital.apellido}</span>
-                           <span className="block text-[6px] text-slate-500 font-semibold mt-0.5">{parte.firmaDigital.cargo || 'Prof. de Educación Física'}</span>
-                           <span className="block text-[6px] text-slate-450 mt-0.5 font-medium">
-                             {formatFirmaDate(parte.firmaDigital.fechaFirma)}
-                           </span>
-                         </div>
-                       ) : (
-                         <span className="inline-block bg-slate-100 text-slate-400 text-[8px] font-bold px-1.5 py-1 rounded w-full">
-                           No firmado
-                         </span>
-                       )}
-                     </td>
-                    <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-700 font-bold leading-normal italic">
-                      {parte.observaciones || 'Sin observaciones.'}
-                    </td>
-                    <td className="border border-slate-900 py-1.5 px-1 text-center">
-                       {parte.firmaAutoridad ? (
-                         <div className="bg-primary-50 border border-primary-200 rounded p-1 text-[7px] font-mono text-primary-850 font-bold leading-tight">
-                           <span className="block font-black text-primary-700 mb-0.5">APROBADO ✔</span>
-                           <span className="block text-slate-900">{parte.firmaAutoridad.nombre} {parte.firmaAutoridad.apellido}</span>
-                           <span className="block text-[6px] text-slate-500 font-semibold mt-0.5">{parte.firmaAutoridad.cargo || 'Autoridad'}</span>
-                           <span className="block text-[6px] text-slate-450 mt-0.5 font-medium">
-                             {formatFirmaDate(parte.firmaAutoridad.fechaFirma)}
-                           </span>
-                         </div>
-                       ) : (
-                         user.rol === "Equipo de Conducción" ? (
-                           <button
-                             type="button"
-                             onClick={() => handleFirmaAutoridad(parte.id)}
-                             className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-[8px] uppercase px-1.5 py-1 rounded border border-primary-700 hover:border-primary-600 shadow-sm active:scale-95 transition-all w-full cursor-pointer"
-                           >
-                             Firmar Folio
-                           </button>
-                         ) : (
-                           <span className="inline-block bg-slate-100 text-slate-400 text-[8px] font-bold px-1.5 py-1.5 rounded w-full">
-                             Pendiente
-                           </span>
-                         )
-                       )}
-                     </td>
-                  </tr>
+                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
+                        {parte.dia || parte.fecha.split('-')[2]}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-1 text-center font-bold text-slate-900">
+                        {parte.mes || 'Mayo'}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
+                        {parte.fecha ? parte.fecha.split('-')[0] : '2026'}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
+                        {parte.claseNum || '1'}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
+                        {parte.unidad || 'I'}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-2 text-center text-[9px] font-bold text-slate-700">
+                        {parte.caracter || 'Práctica'}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-950 text-[10px] font-sans font-bold">
+                        {parte.contenido}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-850 text-[10px] font-sans font-semibold">
+                        {parte.actividades || '-'}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-800 font-bold leading-normal">
+                        {parte.dinamica || 'Grupal'}
+                      </td>
+                      <td className="border border-slate-900 py-1.5 px-1 text-center">
+                        {parte.firmaDigital ? (
+                          <div className="bg-accent-50 border border-accent-300 rounded p-1 text-[7px] font-mono text-accent-850 font-bold leading-tight">
+                            <span className="block font-black text-accent-700 mb-0.5">VERIFICADA ✔</span>
+                            <span className="block text-slate-900">{parte.firmaDigital.nombre} {parte.firmaDigital.apellido}</span>
+                            <span className="block text-[6px] text-slate-500 font-semibold mt-0.5">{parte.firmaDigital.cargo || 'Prof. de Educación Física'}</span>
+                            <span className="block text-[6px] text-slate-450 mt-0.5 font-medium">
+                              {formatFirmaDate(parte.firmaDigital.fechaFirma)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="inline-block bg-slate-100 text-slate-400 text-[8px] font-bold px-1.5 py-1 rounded w-full">
+                            No firmado
+                          </span>
+                        )}
+                      </td>
+                      <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-700 font-bold leading-normal italic">
+                        {parte.observaciones || 'Sin observaciones.'}
+                      </td>
+                      <td className="border border-slate-900 py-1.5 px-1 text-center">
+                        {parte.firmaAutoridad ? (
+                          <div className="bg-primary-50 border border-primary-200 rounded p-1 text-[7px] font-mono text-primary-850 font-bold leading-tight">
+                            <span className="block font-black text-primary-700 mb-0.5">APROBADO ✔</span>
+                            <span className="block text-slate-900">{parte.firmaAutoridad.nombre} {parte.firmaAutoridad.apellido}</span>
+                            <span className="block text-[6px] text-slate-500 font-semibold mt-0.5">{parte.firmaAutoridad.cargo || 'Autoridad'}</span>
+                            <span className="block text-[6px] text-slate-450 mt-0.5 font-medium">
+                              {formatFirmaDate(parte.firmaAutoridad.fechaFirma)}
+                            </span>
+                          </div>
+                        ) : (
+                          user.rol === "Equipo de Conducción" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleFirmaAutoridad(parte.id)}
+                              className="bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-[8px] uppercase px-1.5 py-1 rounded border border-primary-700 hover:border-primary-600 shadow-sm active:scale-95 transition-all w-full cursor-pointer"
+                            >
+                              Firmar Folio
+                            </button>
+                          ) : (
+                            <span className="inline-block bg-slate-100 text-slate-400 text-[8px] font-bold px-1.5 py-1.5 rounded w-full">
+                              Pendiente
+                            </span>
+                          )
+                        )}
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
