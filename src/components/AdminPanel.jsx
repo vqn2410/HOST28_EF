@@ -3,16 +3,21 @@ import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search } from 'lucide-react';
 
-const AdminPanel = () => {
+const AdminPanel = ({ activeTabOverride }) => {
   const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal, feriados, agregarFeriado, eliminarFeriado } = useSchoolData();
   const { user, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario } = useAuth();
 
   // Estados para el modo de edición
   const [editingUsrDni, setEditingUsrDni] = useState(null);
   const [editingEstDni, setEditingEstDni] = useState(null);
-  const [activeTab, setActiveTab] = useState(() => {
+  const [localActiveTab, setLocalActiveTab] = useState(() => {
     return user?.rol === 'Preceptor' ? 'estudiantes_carga' : 'usuarios_carga';
   });
+  
+  const activeTab = activeTabOverride || localActiveTab;
+  // Overriding setActiveTab is tricky because the old code uses it, but since we are using Sidebar for nav,
+  // we can just let it update the local one if they somehow click an internal link, though the tabs are hidden.
+  const setActiveTab = setLocalActiveTab;
 
   // Estados para Feriados
   const [feriadoFecha, setFeriadoFecha] = useState('');
@@ -1354,10 +1359,6 @@ const AdminPanel = () => {
         <div className="flex flex-wrap items-center gap-2.5 text-xs font-bold">
           <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1.5">
             <Users className="text-accent-500" size={14} />
-            <span>Alumnos: <strong className="text-slate-900">{alumnos.length}</strong></span>
-          </div>
-          <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1.5">
-            <CalendarRange className="text-primary-500" size={14} />
             <span>Cursos Config: <strong className="text-slate-900">{Object.keys(cursosConfig).length}</strong></span>
           </div>
           <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1.5">
@@ -1371,8 +1372,8 @@ const AdminPanel = () => {
         </div>
       </div>
 
-      {/* Selector de Pantallas */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
+      {/* Selector de Pantallas oculto (navegación por Sidebar) */}
+      <div className="hidden">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

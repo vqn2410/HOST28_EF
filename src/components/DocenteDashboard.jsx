@@ -5,14 +5,14 @@ import DocenteAsistencia from './DocenteAsistencia';
 import DocenteLibroTemas from './DocenteLibroTemas';
 import DocenteInformes from './DocenteInformes';
 import DocentePlanilla from './DocentePlanilla';
-import { CalendarCheck, BookOpen, AlertCircle, Award, AlertOctagon, Bell, X, Calendar } from 'lucide-react';
+import { CalendarCheck, BookOpen, AlertCircle, Award, AlertOctagon, Bell, X, Calendar, LayoutDashboard } from 'lucide-react';
 
 const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiveTab }) => {
   const { user } = useAuth();
   const { solicitudesFaltantes = [], cursosConfig = {} } = useSchoolData();
   
   const [localActiveTab, setLocalActiveTab] = useState(() => {
-    return user.rol === "Equipo de Conducción" ? 'libro-de-temas' : 'asistencia';
+    return user.rol === "Equipo de Conducción" ? 'dashboard' : 'dashboard';
   });
 
   const activeTab = propActiveTab !== undefined ? propActiveTab : localActiveTab;
@@ -83,6 +83,18 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
       {/* Navegación por Pestañas / Tab Menu */}
       <div className="hidden md:flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
         <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'dashboard'
+              ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+              : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+          }`}
+        >
+          <LayoutDashboard size={16} />
+          Inicio
+        </button>
+
+        <button
           onClick={() => setActiveTab('asistencia')}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'asistencia'
@@ -133,6 +145,50 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
 
       {/* Renderizado Dinámico */}
       <div className="pt-2 animate-fade-in">
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-4">
+            <button onClick={() => setActiveTab('asistencia')} className="glass-panel text-left p-6 rounded-3xl border border-slate-200/60 hover:border-primary-500/50 shadow-lg hover:shadow-xl transition-all group flex flex-col gap-4 cursor-pointer relative overflow-hidden bg-white hover:bg-slate-50">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-primary-500/10 transition-colors"></div>
+              <div className="w-12 h-12 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                <CalendarCheck size={24} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">Crear Parte Diario</h3>
+                <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Toma asistencia, registra la temática de la clase y declara firmas.</p>
+              </div>
+            </button>
+            <button onClick={() => setActiveTab('libro-de-temas')} className="glass-panel text-left p-6 rounded-3xl border border-slate-200/60 hover:border-accent-500/50 shadow-lg hover:shadow-xl transition-all group flex flex-col gap-4 cursor-pointer relative overflow-hidden bg-white hover:bg-slate-50">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-accent-500/10 transition-colors"></div>
+              <div className="w-12 h-12 rounded-2xl bg-accent-50 text-accent-600 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                <BookOpen size={24} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-slate-900 group-hover:text-accent-600 transition-colors">Libro de Temas</h3>
+                <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Visita y edita las actas consolidadas y las temáticas desarrolladas en clases.</p>
+              </div>
+            </button>
+            <button onClick={() => setActiveTab('planilla-mensual')} className="glass-panel text-left p-6 rounded-3xl border border-slate-200/60 hover:border-emerald-500/50 shadow-lg hover:shadow-xl transition-all group flex flex-col gap-4 cursor-pointer relative overflow-hidden bg-white hover:bg-slate-50">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-emerald-500/10 transition-colors"></div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                <Calendar size={24} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-slate-900 group-hover:text-emerald-600 transition-colors">Asistencia Mensual</h3>
+                <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Verifica el panorama general de asistencia de todo el mes de tus alumnos.</p>
+              </div>
+            </button>
+            <button onClick={() => setActiveTab('mis-informes')} className="glass-panel text-left p-6 rounded-3xl border border-slate-200/60 hover:border-amber-500/50 shadow-lg hover:shadow-xl transition-all group flex flex-col gap-4 cursor-pointer relative overflow-hidden bg-white hover:bg-slate-50">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-amber-500/10 transition-colors"></div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-slate-900 group-hover:text-amber-600 transition-colors">Reportes Individuales</h3>
+                <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Genera reportes de seguimiento para alumnos específicos y notifica preceptoría.</p>
+              </div>
+            </button>
+          </div>
+        )}
         {activeTab === 'asistencia' && <DocenteAsistencia />}
         {activeTab === 'libro-de-temas' && <DocenteLibroTemas />}
         {activeTab === 'planilla-mensual' && <DocentePlanilla />}

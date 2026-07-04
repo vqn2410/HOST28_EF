@@ -21,6 +21,7 @@ const PreceptorDashboard = () => {
   const [activeTab, setActiveTab] = useState('planilla'); // 'planilla' | 'solicitudes' | 'informes' | 'partes'
   const [selectedParteDetail, setSelectedParteDetail] = useState(null);
   const [showModalCurricular, setShowModalCurricular] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Estados para pestaña Partes
   const [selectedCursoPartes, setSelectedCursoPartes] = useState(() => {
@@ -217,6 +218,7 @@ const PreceptorDashboard = () => {
   };
 
   const MESES = [
+    { value: "02", label: "Febrero" },
     { value: "03", label: "Marzo" },
     { value: "04", label: "Abril" },
     { value: "05", label: "Mayo" },
@@ -225,7 +227,8 @@ const PreceptorDashboard = () => {
     { value: "08", label: "Agosto" },
     { value: "09", label: "Septiembre" },
     { value: "10", label: "Octubre" },
-    { value: "11", label: "Noviembre" }
+    { value: "11", label: "Noviembre" },
+    { value: "12", label: "Diciembre" }
   ];
 
   // Regla de días de clase de EF: se leen dinámicamente de la configuración administrativa
@@ -471,14 +474,76 @@ const PreceptorDashboard = () => {
             Gestión escolar de cursadas Educación Física, solicitudes de partes faltantes e incidencias de E.E.S N° 28.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-bold bg-primary-500/10 border border-primary-500/20 text-primary-600 px-3.5 py-2 rounded-xl">
-          <Clock size={14} />
-          <span>Ciclo Lectivo Escolar 2026</span>
+        <div className="flex items-center gap-4">
+          {misNotificaciones.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                <Bell size={20} className="text-slate-600" />
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+              </button>
+
+              {/* Dropdown Notificaciones */}
+              {showNotifications && (
+                <div className="absolute -left-2 md:left-auto md:right-0 mt-2 w-[90vw] md:w-96 max-w-sm bg-white border border-slate-200 rounded-2xl shadow-xl z-50 animate-fade-in origin-top-left md:origin-top-right">
+                  <div className="p-3 border-b border-slate-100 flex items-center gap-2">
+                    <Bell className="text-primary-500" size={16} />
+                    <h3 className="text-[10px] font-extrabold text-slate-800 uppercase tracking-wider font-display">
+                      Novedades ({misNotificaciones.length})
+                    </h3>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+                    {misNotificaciones.map((n) => (
+                      <div key={n.id} className="relative overflow-hidden bg-slate-50 border border-slate-200/80 p-3 rounded-xl flex flex-col gap-2">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500"></div>
+                        <div className="space-y-1">
+                          <span className="inline-block bg-primary-500/10 text-primary-700 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase">
+                            Curso {n.curso}
+                          </span>
+                          <p className="text-xs text-slate-700 font-bold leading-normal">{n.mensaje}</p>
+                          <span className="block text-[8px] text-slate-500 font-medium font-mono">
+                            {new Date(n.fechaCreacion).toLocaleString()}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            marcarNotificacionLeida(n.id, user.dni);
+                            if (misNotificaciones.length === 1) setShowNotifications(false);
+                          }}
+                          className="self-end text-[9px] bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-650 font-extrabold px-2 py-1 rounded transition-all cursor-pointer shadow-xs"
+                        >
+                          Entendido
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 text-xs font-bold bg-primary-500/10 border border-primary-500/20 text-primary-600 px-3.5 py-2 rounded-xl">
+            <Clock size={14} />
+            <span>Ciclo Lectivo Escolar 2026</span>
+          </div>
         </div>
       </div>
 
       {/* Tabs Menu Premium */}
+
       <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
+        <button
+          onClick={() => setActiveTab('partes')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'partes'
+            ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+            : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+            }`}
+        >
+          <FileSignature size={16} />
+          Partes de Clase
+        </button>
         <button
           onClick={() => setActiveTab('planilla')}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'planilla'
@@ -516,54 +581,10 @@ const PreceptorDashboard = () => {
           Actas e Informes
         </button>
 
-        <button
-          onClick={() => setActiveTab('partes')}
-          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'partes'
-            ? 'border-primary-500 text-primary-500 bg-primary-500/5'
-            : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
-            }`}
-        >
-          <FileSignature size={16} />
-          Partes de Clase
-        </button>
+
       </div>
 
-      {/* Panel de Notificaciones Recientes (Cargas de Docentes) */}
-      {misNotificaciones.length > 0 && (
-        <div className="space-y-3 p-4 bg-white border border-primary-500/20 rounded-2xl shadow-sm animate-fade-in mb-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-2">
-            <Bell className="text-primary-500 animate-bounce" size={16} />
-            <h3 className="text-[10px] font-extrabold text-slate-800 uppercase tracking-wider font-display">
-              Novedades de Asistencia (Partes Recientes Cargados)
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {misNotificaciones.map((n) => (
-              <div
-                key={n.id}
-                className="relative overflow-hidden glass-panel bg-slate-50/50 border border-slate-200/80 p-3.5 rounded-xl shadow-xs flex items-start justify-between gap-4 animate-pulse-once"
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500"></div>
-                <div className="space-y-1">
-                  <span className="inline-block bg-primary-500/10 border border-primary-500/25 text-primary-700 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase">
-                    Curso {n.curso}
-                  </span>
-                  <p className="text-xs text-slate-700 font-bold leading-normal">{n.mensaje}</p>
-                  <span className="block text-[8px] text-slate-450 text-slate-500 font-medium font-mono">
-                    Registrado: {new Date(n.fechaCreacion).toLocaleString()}
-                  </span>
-                </div>
-                <button
-                  onClick={() => marcarNotificacionLeida(n.id, user.dni)}
-                  className="text-[9px] bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-650 font-extrabold px-2.5 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-xs"
-                >
-                  Entendido
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Se ha movido el panel de notificaciones a un icono desplegable en el encabezado */}
 
       {/* Renderizado de Pestañas */}
       <div className="pt-2 animate-fade-in">
