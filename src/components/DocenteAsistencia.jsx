@@ -230,7 +230,10 @@ const DocenteAsistencia = () => {
 
   const feriadoDelDia = useMemo(() => {
     if (!feriados) return null;
-    return feriados.find(f => f.fecha === fecha);
+    return feriados.find((feriado) =>
+      feriado.fecha === fecha ||
+      (feriado.tipo === 'RECESO_INVIERNO' && fecha >= feriado.fechaInicio && fecha <= feriado.fechaFin)
+    );
   }, [feriados, fecha]);
 
   const isFeriado = !!feriadoDelDia;
@@ -728,8 +731,8 @@ const DocenteAsistencia = () => {
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-800 text-sm rounded-2xl flex items-center gap-3 font-semibold animate-fade-in">
                 <Calendar className="text-amber-600 shrink-0" size={20} />
                 <div>
-                  <span className="font-bold block">Feriado / Fecha Patria: {feriadoDelDia.descripcion}</span>
-                  <span className="text-[11px] font-normal">La fecha seleccionada corresponde a un feriado. La toma de asistencia se ha deshabilitado y el parte se registrará como clase suspendida.</span>
+                  <span className="font-bold block">{feriadoDelDia.tipo === 'RECESO_INVIERNO' ? 'Receso de invierno' : 'Feriado / Fecha Patria'}: {feriadoDelDia.descripcion}</span>
+                  <span className="text-[11px] font-normal">La fecha seleccionada no es lectiva. La toma de asistencia se ha deshabilitado y el parte se registrará como clase suspendida.</span>
                 </div>
               </div>
             )}

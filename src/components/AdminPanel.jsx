@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search } from 'lucide-react';
 
 const AdminPanel = ({ activeTabOverride }) => {
-  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal, feriados, agregarFeriado, eliminarFeriado } = useSchoolData();
+  const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal, feriados, agregarFeriado, agregarRecesoInvierno, eliminarFeriado } = useSchoolData();
   const { user, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario } = useAuth();
 
   // Estados para el modo de edición
@@ -22,6 +22,8 @@ const AdminPanel = ({ activeTabOverride }) => {
   // Estados para Feriados
   const [feriadoFecha, setFeriadoFecha] = useState('');
   const [feriadoDesc, setFeriadoDesc] = useState('');
+  const [recesoInicio, setRecesoInicio] = useState('');
+  const [recesoFin, setRecesoFin] = useState('');
   const [feriadoSuccess, setFeriadoSuccess] = useState('');
 
   // Estados para la carga del CSV en tiempo real
@@ -504,6 +506,21 @@ const AdminPanel = ({ activeTabOverride }) => {
     setFeriadoFecha('');
     setFeriadoDesc('');
     setTimeout(() => setFeriadoSuccess(''), 3000);
+  };
+
+  const handleRecesoSubmit = async (e) => {
+    e.preventDefault();
+    if (!recesoInicio || !recesoFin) return;
+
+    try {
+      await agregarRecesoInvierno({ fechaInicio: recesoInicio, fechaFin: recesoFin });
+      setFeriadoSuccess('Receso de invierno agregado. Sus fechas no se considerarán para asistencia.');
+      setRecesoInicio('');
+      setRecesoFin('');
+      setTimeout(() => setFeriadoSuccess(''), 3000);
+    } catch (error) {
+      setFeriadoSuccess(error.message);
+    }
   };
 
   const handleCloseAdminParteSuccessModal = () => {
@@ -3009,6 +3026,26 @@ const AdminPanel = ({ activeTabOverride }) => {
               </div>
             </form>
           </div>
+
+          <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
+            <h2 className="text-xl font-bold text-slate-900 font-display mb-1">Cargar Receso de Invierno</h2>
+            <p className="text-xs text-slate-500 mb-4">El rango completo quedará excluido de las planillas y de las solicitudes de asistencia.</p>
+            <form onSubmit={handleRecesoSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Inicio</label>
+                <input type="date" value={recesoInicio} onChange={(e) => setRecesoInicio(e.target.value)} required className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary-500 transition-all" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Finalización</label>
+                <input type="date" value={recesoFin} onChange={(e) => setRecesoFin(e.target.value)} min={recesoInicio || undefined} required className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-primary-500 transition-all" />
+              </div>
+              <div>
+                <button type="submit" className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition-all shadow-md cursor-pointer h-[38px]">
+                  Agregar Receso
+                </button>
+              </div>
+            </form>
+          </div>
           
           <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
             <h2 className="text-xl font-bold text-slate-900 font-display mb-4">Feriados Cargados</h2>
@@ -3025,7 +3062,7 @@ const AdminPanel = ({ activeTabOverride }) => {
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {feriados.map(f => (
                       <tr key={f.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{f.tipo === 'RECESO_INVIERNO' ? `${new Date(f.fechaInicio + 'T00:00:00').toLocaleDateString('es-AR')} al ${new Date(f.fechaFin + 'T00:00:00').toLocaleDateString('es-AR')}` : new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
                         <td className="py-3 px-3">{f.descripcion}</td>
                         <td className="py-3 px-3 text-right">
                           <button onClick={() => eliminarFeriado(f.id)} className="p-1.5 text-red-500 hover:text-red-750 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer" title="Eliminar Feriado"><Trash2 size={14} /></button>

@@ -3,6 +3,11 @@ import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
 import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen, Download } from 'lucide-react';
 
+const esFechaNoLectiva = (fecha, feriados) => feriados.some((feriado) =>
+  feriado.fecha === fecha ||
+  (feriado.tipo === 'RECESO_INVIERNO' && fecha >= feriado.fechaInicio && fecha <= feriado.fechaFin)
+);
+
 const PreceptorDashboard = () => {
   const {
     alumnos,
@@ -13,7 +18,8 @@ const PreceptorDashboard = () => {
     agregarSolicitudParteFaltante,
     notificaciones = [],
     marcarNotificacionLeida,
-    setParteToEditGlobal
+    setParteToEditGlobal,
+    feriados = []
   } = useSchoolData();
   const { user } = useAuth();
 
@@ -246,9 +252,9 @@ const PreceptorDashboard = () => {
 
     while (date.getMonth() === monthIndex) {
       const dayOfWeek = date.getDay();
-      if (claseDiasSemana.includes(dayOfWeek)) {
-        const dayNum = String(date.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${selectedMes}-${dayNum}`;
+      const dayNum = String(date.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${selectedMes}-${dayNum}`;
+      if (claseDiasSemana.includes(dayOfWeek) && !esFechaNoLectiva(formattedDate, feriados)) {
         const label = dayOfWeek === 1 ? `Lun ${date.getDate()}` :
           dayOfWeek === 2 ? `Mar ${date.getDate()}` :
             dayOfWeek === 3 ? `Mié ${date.getDate()}` : `Jue ${date.getDate()}`;
@@ -257,7 +263,7 @@ const PreceptorDashboard = () => {
       date.setDate(date.getDate() + 1);
     }
     return dias;
-  }, [selectedMes, claseDiasSemana]);
+  }, [selectedMes, claseDiasSemana, feriados]);
 
   // Calcular clases suspendidas en el mes para el curso seleccionado
   const clasesSuspendidas = useMemo(() => {
@@ -331,9 +337,9 @@ const PreceptorDashboard = () => {
 
     while (date.getMonth() === monthIndex) {
       const dayOfWeek = date.getDay();
-      if (solCursoDiasSemana.includes(dayOfWeek)) {
-        const dayNum = String(date.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${selectedMes}-${dayNum}`;
+      const dayNum = String(date.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${selectedMes}-${dayNum}`;
+      if (solCursoDiasSemana.includes(dayOfWeek) && !esFechaNoLectiva(formattedDate, feriados)) {
 
         // Solo sugerir fechas pasadas o del día de hoy
         if (formattedDate <= hoyStr) {
@@ -350,7 +356,7 @@ const PreceptorDashboard = () => {
       date.setDate(date.getDate() + 1);
     }
     return faltantes;
-  }, [selectedMes, solCurso, solCursoDiasSemana, partes, solicitudesFaltantes]);
+  }, [selectedMes, solCurso, solCursoDiasSemana, partes, solicitudesFaltantes, feriados]);
 
   // Calcular estadísticas acumuladas por alumno en su respectivo curso de EF
   const calcularEstadisticasAlumnoReasignado = (alumno) => {
@@ -365,7 +371,7 @@ const PreceptorDashboard = () => {
 
     while (date.getMonth() === monthIndex) {
       const dayOfWeek = date.getDay();
-      if (diasSemana.includes(dayOfWeek)) {
+      if (diasSemana.includes(dayOfWeek) && !esFechaNoLectiva(`${year}-${selectedMes}-${String(date.getDate()).padStart(2, '0')}`, feriados)) {
         const dayNum = String(date.getDate()).padStart(2, '0');
         dias.push(`${year}-${selectedMes}-${dayNum}`);
       }
@@ -816,7 +822,7 @@ const PreceptorDashboard = () => {
 
                           while (date.getMonth() === monthIndex) {
                             const dayOfWeek = date.getDay();
-                            if (diasSemana.includes(dayOfWeek)) {
+                            if (diasSemana.includes(dayOfWeek) && !esFechaNoLectiva(`${year}-${selectedMes}-${String(date.getDate()).padStart(2, '0')}`, feriados)) {
                               const dayNum = String(date.getDate()).padStart(2, '0');
                               dias.push({
                                 dateStr: `${year}-${selectedMes}-${dayNum}`,

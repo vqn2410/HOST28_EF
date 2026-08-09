@@ -222,7 +222,8 @@ const INITIAL_INFORMES = [
 
 // Feriados semilla
 const INITIAL_FERIADOS = [
-  { id: "f1", fecha: "2026-05-25", descripcion: "Revolución de Mayo" }
+  { id: "f1", fecha: "2026-05-25", descripcion: "Revolución de Mayo" },
+  { id: "f2", fecha: "2026-07-09", descripcion: "Día de la Independencia" }
 ];
 
 export const SchoolDataProvider = ({ children }) => {
@@ -286,7 +287,7 @@ export const SchoolDataProvider = ({ children }) => {
         const snapFeriados = await getDocs(collection(db, "feriados"));
         const listFeriados = [];
         snapFeriados.forEach(doc => listFeriados.push(doc.data()));
-        listFeriados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        listFeriados.sort((a, b) => new Date(b.fecha || b.fechaInicio) - new Date(a.fecha || a.fechaInicio));
         setFeriados(listFeriados);
 
       } catch (error) {
@@ -606,6 +607,29 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
+  const agregarRecesoInvierno = async ({ fechaInicio, fechaFin }) => {
+    if (fechaFin < fechaInicio) {
+      throw new Error('La fecha de finalización debe ser posterior a la fecha de inicio.');
+    }
+
+    const id = `receso_invierno_${Date.now()}`;
+    const recesoObj = {
+      id,
+      tipo: 'RECESO_INVIERNO',
+      fechaInicio,
+      fechaFin,
+      descripcion: 'Receso de invierno'
+    };
+
+    try {
+      await setDoc(doc(db, "feriados", id), recesoObj);
+      setFeriados((prev) => [...prev, recesoObj]);
+    } catch (error) {
+      console.error("Error al agregar el receso de invierno en Firebase:", error);
+      setFeriados((prev) => [...prev, recesoObj]);
+    }
+  };
+
   const eliminarFeriado = async (feriadoId) => {
     try {
       await deleteDoc(doc(db, "feriados", feriadoId));
@@ -677,6 +701,7 @@ export const SchoolDataProvider = ({ children }) => {
       agregarSolicitudParteFaltante,
       marcarNotificacionLeida,
       agregarFeriado,
+      agregarRecesoInvierno,
       eliminarFeriado,
       parteToEditGlobal,
       setParteToEditGlobal,

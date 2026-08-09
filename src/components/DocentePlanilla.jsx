@@ -3,11 +3,17 @@ import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
 import { Filter, BarChart3, AlertCircle, Clock, FileSignature } from 'lucide-react';
 
+const esFechaNoLectiva = (fecha, feriados) => feriados.some((feriado) =>
+  feriado.fecha === fecha ||
+  (feriado.tipo === 'RECESO_INVIERNO' && fecha >= feriado.fechaInicio && fecha <= feriado.fechaFin)
+);
+
 const DocentePlanilla = () => {
   const { 
     alumnos, 
     partes, 
-    cursosConfig 
+    cursosConfig,
+    feriados = []
   } = useSchoolData();
   const { user } = useAuth();
 
@@ -75,9 +81,9 @@ const DocentePlanilla = () => {
 
     while (date.getMonth() === monthIndex) {
       const dayOfWeek = date.getDay();
-      if (claseDiasSemana.includes(dayOfWeek)) {
-        const dayNum = String(date.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${selectedMes}-${dayNum}`;
+      const dayNum = String(date.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${selectedMes}-${dayNum}`;
+      if (claseDiasSemana.includes(dayOfWeek) && !esFechaNoLectiva(formattedDate, feriados)) {
         const label = dayOfWeek === 1 ? `Lun ${date.getDate()}` :
                       dayOfWeek === 2 ? `Mar ${date.getDate()}` :
                       dayOfWeek === 3 ? `Mié ${date.getDate()}` : `Jue ${date.getDate()}`;
@@ -86,7 +92,7 @@ const DocentePlanilla = () => {
       date.setDate(date.getDate() + 1);
     }
     return dias;
-  }, [selectedMes, selectedCurso, claseDiasSemana]);
+  }, [selectedMes, selectedCurso, claseDiasSemana, feriados]);
 
   // Calcular clases suspendidas en el mes para el curso seleccionado
   const clasesSuspendidas = useMemo(() => {
@@ -191,7 +197,7 @@ const DocentePlanilla = () => {
 
     while (date.getMonth() === monthIndex) {
       const dayOfWeek = date.getDay();
-      if (diasSemana.includes(dayOfWeek)) {
+      if (diasSemana.includes(dayOfWeek) && !esFechaNoLectiva(`${year}-${selectedMes}-${String(date.getDate()).padStart(2, '0')}`, feriados)) {
         const dayNum = String(date.getDate()).padStart(2, '0');
         dias.push(`${year}-${selectedMes}-${dayNum}`);
       }
@@ -474,10 +480,11 @@ const DocentePlanilla = () => {
 
                     while (date.getMonth() === monthIndex) {
                       const dayOfWeek = date.getDay();
-                      if (diasSemana.includes(dayOfWeek)) {
-                        const dayNum = String(date.getDate()).padStart(2, '0');
+                      const dayNum = String(date.getDate()).padStart(2, '0');
+                      const dateStr = `${year}-${selectedMes}-${dayNum}`;
+                      if (diasSemana.includes(dayOfWeek) && !esFechaNoLectiva(dateStr, feriados)) {
                         dias.push({
-                          dateStr: `${year}-${selectedMes}-${dayNum}`,
+                          dateStr,
                           label: `${date.getDate()}/${selectedMes}`
                         });
                       }
