@@ -1168,7 +1168,7 @@ const PreceptorDashboard = () => {
                                                 type="button"
                                                 onClick={() => {
                                                   setParteToEditGlobal(completedParte);
-                                                  window.location.hash = '#/admin';
+                                                  window.location.hash = '#/admin/partes_crear';
                                                 }}
                                                 className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[9px] px-2.5 py-1 rounded-xl transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap border border-slate-200"
                                               >
@@ -1532,7 +1532,7 @@ const PreceptorDashboard = () => {
                                 type="button"
                                 onClick={() => {
                                   setParteToEditGlobal(parte);
-                                  window.location.hash = '#/admin';
+                                  window.location.hash = '#/admin/partes_crear';
                                 }}
                                 className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer flex items-center gap-1 border border-slate-200"
                                 title="Editar parte en el Panel de Administración"

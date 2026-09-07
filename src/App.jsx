@@ -106,7 +106,10 @@ const AppContent = () => {
               currentPath="/matricula"
               onNavigate={handleNavigate}
             >
-              <AdminPanel activeTabOverride={currentPath.replace('/admin', '').replace('/', '') || null} />
+              <AdminPanel
+                activeTabOverride={currentPath.replace('/admin', '').replace('/', '') || null}
+                onNavigate={handleNavigate}
+              />
             </ProtectedRoute>
           )}
 

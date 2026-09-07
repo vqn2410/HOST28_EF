@@ -3,7 +3,7 @@ import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search } from 'lucide-react';
 
-const AdminPanel = ({ activeTabOverride }) => {
+const AdminPanel = ({ activeTabOverride, onNavigate }) => {
   const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal, feriados, agregarFeriado, agregarRecesoInvierno, eliminarFeriado } = useSchoolData();
   const { user, usuarios, registrarUsuario, actualizarUsuario, eliminarUsuario } = useAuth();
 
@@ -15,9 +15,14 @@ const AdminPanel = ({ activeTabOverride }) => {
   });
   
   const activeTab = activeTabOverride || localActiveTab;
-  // Overriding setActiveTab is tricky because the old code uses it, but since we are using Sidebar for nav,
-  // we can just let it update the local one if they somehow click an internal link, though the tabs are hidden.
   const setActiveTab = setLocalActiveTab;
+  const navigateToAdminTab = (tab) => {
+    if (onNavigate) {
+      onNavigate(`/admin/${tab}`);
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   // Estados para Feriados
   const [feriadoFecha, setFeriadoFecha] = useState('');
@@ -567,14 +572,14 @@ const AdminPanel = ({ activeTabOverride }) => {
 
   useEffect(() => {
     if (parteToEditGlobal && activeTab !== 'partes_crear') {
-      setActiveTab('partes_crear');
+      navigateToAdminTab('partes_crear');
       handleAdminParteEditClick(parteToEditGlobal);
       setParteToEditGlobal(null);
     } else if (parteToEditGlobal && activeTab === 'partes_crear') {
       handleAdminParteEditClick(parteToEditGlobal);
       setParteToEditGlobal(null);
     }
-  }, [parteToEditGlobal, activeTab, setParteToEditGlobal]);
+  }, [parteToEditGlobal, activeTab, setParteToEditGlobal, onNavigate]);
 
   const handleAdminParteEditClick = (parte) => {
     setAdminParteSelectedCurso(parte.curso);
@@ -1655,7 +1660,7 @@ const AdminPanel = ({ activeTabOverride }) => {
                               });
                               setUsrError('');
                               setUsrSuccess('');
-                              setActiveTab('usuarios_carga');
+                              navigateToAdminTab('usuarios_carga');
                             }}
                             className="p-1 text-primary-500 hover:text-primary-700 hover:bg-primary-500/10 rounded transition-colors cursor-pointer"
                             title="Editar"
@@ -2055,7 +2060,7 @@ const AdminPanel = ({ activeTabOverride }) => {
                               });
                               setEstError('');
                               setEstSuccess('');
-                              setActiveTab('estudiantes_carga');
+                              navigateToAdminTab('estudiantes_carga');
                             }}
                             className="p-1 text-accent-500 hover:text-accent-700 hover:bg-accent-500/10 rounded transition-colors cursor-pointer"
                             title="Editar"
@@ -2245,7 +2250,7 @@ const AdminPanel = ({ activeTabOverride }) => {
                             <button
                               onClick={() => {
                                 handleCursoConfigChange(curso);
-                                setActiveTab('cursos_carga');
+                                navigateToAdminTab('cursos_carga');
                               }}
                               className="p-1 text-primary-500 hover:text-primary-700 hover:bg-primary-500/10 rounded transition-colors cursor-pointer"
                               title="Editar Configuración"
