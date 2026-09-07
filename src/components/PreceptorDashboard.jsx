@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen, Download } from 'lucide-react';
+import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen, Download, TrendingUp } from 'lucide-react';
+import ReportesTab from './ReportesTab';
 
 const esFechaNoLectiva = (fecha, feriados) => feriados.some((feriado) =>
   feriado.fecha === fecha ||
@@ -601,6 +602,17 @@ const PreceptorDashboard = () => {
         </button>
 
         <button
+          onClick={() => setActiveTab('reportes')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'reportes'
+            ? 'border-primary-500 text-primary-500 bg-primary-500/5'
+            : 'border-transparent text-slate-500 hover:text-primary-500 hover:bg-slate-100'
+            }`}
+        >
+          <TrendingUp size={16} />
+          Reportes
+        </button>
+
+        <button
           onClick={() => setActiveTab('solicitudes')}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold border-b-2 tracking-wide uppercase transition-all whitespace-nowrap cursor-pointer ${activeTab === 'solicitudes'
             ? 'border-primary-500 text-primary-500 bg-primary-500/5'
@@ -1112,6 +1124,10 @@ const PreceptorDashboard = () => {
             )}
 
           </div>
+        )}
+
+        {activeTab === 'reportes' && (
+          <ReportesTab cursos={cursosVisibles} />
         )}
 
         {activeTab === 'solicitudes' && (
