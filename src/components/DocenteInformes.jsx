@@ -23,7 +23,7 @@ const DocenteInformes = () => {
   }, [cursosConfig, user.dni]);
 
   const estudiantesElegibles = useMemo(() => {
-    return alumnos.filter(al => cursosAsignados.includes(al.cursoEF))
+    return alumnos.filter(al => cursosAsignados.includes(al.cursoEF) || (al.recursaCursos || []).some(c => cursosAsignados.includes(c)))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [alumnos, cursosAsignados]);
 

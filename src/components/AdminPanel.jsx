@@ -127,7 +127,8 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
     turno: 'Mañana',
     asignarDiferenteEF: false,
     cursoEF: '1°1°',
-    noCursaEF: false
+    noCursaEF: false,
+    recursaCursos: []
   });
   const [estError, setEstError] = useState('');
   const [estSuccess, setEstSuccess] = useState('');
@@ -444,7 +445,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
     setEstError('');
     setEstSuccess('');
 
-    const { nombre, dni, cursoOrigen, turno, asignarDiferenteEF, cursoEF, noCursaEF } = estForm;
+    const { nombre, dni, cursoOrigen, turno, asignarDiferenteEF, cursoEF, noCursaEF, recursaCursos } = estForm;
 
     if (!nombre.trim() || !dni.trim() || !cursoOrigen || !turno) {
       setEstError("Todos los campos son obligatorios.");
@@ -461,6 +462,11 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
       return;
     }
 
+    if (!noCursaEF && recursaCursos.includes(cursoEF)) {
+      setEstError("No podés marcar como recursada la misma división donde ya cursa EF.");
+      return;
+    }
+
     const cursoEFDefinitivo = noCursaEF ? 'No cursa' : (asignarDiferenteEF ? cursoEF : cursoOrigen);
 
     const datosEstudiante = {
@@ -469,7 +475,8 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
       cursoOrigen,
       turno,
       cursoEF: cursoEFDefinitivo,
-      noCursaEF: !!noCursaEF
+      noCursaEF: !!noCursaEF,
+      recursaCursos: noCursaEF ? [] : recursaCursos
     };
 
     if (editingEstDni) {
@@ -497,7 +504,8 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
       turno: 'Mañana',
       asignarDiferenteEF: false,
       cursoEF: '1°1°',
-      noCursaEF: false
+      noCursaEF: false,
+      recursaCursos: []
     });
   };
 
@@ -564,7 +572,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
 
     // Init asistencia (solo alumnos activos en este curso EF)
     const initialAsistencia = {};
-    alumnos.filter(al => al.cursoEF === curso && !al.noCursaEF).forEach(al => {
+    alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).forEach(al => {
       initialAsistencia[al.dni] = 'Presente';
     });
     setAdminParteAsistencia(initialAsistencia);
@@ -658,7 +666,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
       dinamicaFinal = '-';
       actividadesFinal = '-';
       // Marcar todos como "-"
-      alumnos.filter(al => al.cursoEF === adminParteSelectedCurso && !al.noCursaEF).forEach(al => {
+      alumnos.filter(al => (al.cursoEF === adminParteSelectedCurso || (al.recursaCursos || []).includes(adminParteSelectedCurso)) && !al.noCursaEF).forEach(al => {
         asistenciaFinal[al.dni] = '-';
       });
     } else {
@@ -1003,10 +1011,10 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
   };
 
   const descargarCSVTemplate = () => {
-    const csvContent = "\uFEFF" + "nombre,dni,cursoOrigen,cursoEF\n" +
-      "Perez Juan,12345678,1°1°,1°1°\n" +
-      "Gomez Maria,87654321,1°2°,1°2°\n" +
-      "Rodriguez Luis,45678901,2°1°,1°1°\n";
+    const csvContent = "\uFEFF" + "nombre,dni,cursoOrigen,cursoEF,recursaCursos\n" +
+      "Perez Juan,12345678,1°1°,1°1°,\n" +
+      "Gomez Maria,87654321,1°2°,1°2°,\n" +
+      "Rodriguez Luis,45678901,2°1°,1°1°,1°2°\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -1018,14 +1026,15 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
   };
 
   const descargarEstudiantesExcel = () => {
-    const headers = ["Nombre", "DNI", "Curso Origen", "Turno", "Curso EF", "Estado EF"];
+    const headers = ["Nombre", "DNI", "Curso Origen", "Turno", "Curso EF", "Estado EF", "Recursa Cursos"];
     const rows = alumnosFiltradosYOrdenados.map(a => [
       a.nombre,
       a.dni,
       a.cursoOrigen,
       a.turno,
       a.noCursaEF ? 'No cursa' : a.cursoEF,
-      a.noCursaEF ? 'No cursa EF' : (a.cursoEF !== a.cursoOrigen ? 'Alumno Externo' : 'Regular')
+      a.noCursaEF ? 'No cursa EF' : (a.cursoEF !== a.cursoOrigen ? 'Alumno Externo' : 'Regular'),
+      (a.recursaCursos || []).join(', ')
     ]);
     const csvContent = "\uFEFF" + 
       [headers.join(";"), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(";"))].join("\n");
@@ -1086,6 +1095,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
       const idxDni = headers.indexOf('dni');
       const idxCursoOrigen = headers.indexOf('cursoorigen');
       const idxCursoEF = headers.indexOf('cursoef');
+      const idxRecursa = headers.indexOf('recursacursos');
 
       if (idxNombre === -1 || idxDni === -1 || idxCursoOrigen === -1) {
         setEstError("El CSV debe contener las columnas: nombre, dni, cursoOrigen");
@@ -1192,13 +1202,20 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
         }
 
         const turnoCalculado = determinarTurno(cursoOrigen);
+        const recursaCursos = (idxRecursa !== -1 && row[idxRecursa])
+          ? row[idxRecursa]
+              .split(/[|;]/)
+              .map(c => c.trim().replace(/\s+/g, '').replace(/º/g, '°'))
+              .filter(c => c && CURSOS.includes(c) && c !== (cursoEF || cursoOrigen))
+          : [];
         const studentObj = {
           nombre,
           dni,
           cursoOrigen,
           turno: turnoCalculado,
           cursoEF: cursoEF || cursoOrigen,
-          noCursaEF: noCursaEF
+          noCursaEF: noCursaEF,
+          recursaCursos
         };
 
         if (currentAlumnos.some(a => a.dni === dni)) {
@@ -1847,7 +1864,8 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                                 ...estForm,
                                 noCursaEF: checked,
                                 // Si no cursa, forzar asignarDiferenteEF a false
-                                asignarDiferenteEF: checked ? false : estForm.asignarDiferenteEF
+                                asignarDiferenteEF: checked ? false : estForm.asignarDiferenteEF,
+                                recursaCursos: checked ? [] : estForm.recursaCursos
                               });
                             }}
                             className="sr-only peer"
@@ -1879,7 +1897,11 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                               <label className="block text-[9px] font-bold text-accent-600 uppercase mb-1">Curso de Educación Física Destino</label>
                               <select
                                 value={estForm.cursoEF}
-                                onChange={e => setEstForm({...estForm, cursoEF: e.target.value})}
+                                onChange={e => setEstForm({
+                                  ...estForm,
+                                  cursoEF: e.target.value,
+                                  recursaCursos: estForm.recursaCursos.filter(x => x !== e.target.value)
+                                })}
                                 className="w-full bg-white border border-accent-500/20 focus:border-accent-500 rounded-lg px-2.5 py-1 text-xs text-slate-855 focus:outline-none font-bold"
                               >
                                 {CURSOS.map(c => <option key={c} value={c}>Curso {c}</option>)}
@@ -1889,6 +1911,51 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                         </>
                       )}
                     </div>
+
+                    {/* Cursada Adicional: recursar otra división EF (multi-matriculación) */}
+                    {!estForm.noCursaEF && (
+                      <div className="pt-2 bg-purple-50/50 p-3.5 rounded-xl border border-purple-200 space-y-3 animate-pulse-once">
+                        <div>
+                          <span className="text-[10px] font-bold text-purple-900 leading-tight block">
+                            Cursada Adicional (Recursar otra división)
+                          </span>
+                          <p className="text-[9px] text-slate-500 font-semibold mt-1 leading-relaxed">
+                            Si además <strong>recursa</strong> otra división EF, marcá esa división. El estudiante figurará en las planillas de <strong>todos</strong> los cursos seleccionados, sin necesidad de que sean su curso de origen.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {CURSOS.filter(c => c !== estForm.cursoEF).map(c => {
+                            const activo = estForm.recursaCursos.includes(c);
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => {
+                                  setEstForm(prev => ({
+                                    ...prev,
+                                    recursaCursos: activo
+                                      ? prev.recursaCursos.filter(x => x !== c)
+                                      : [...prev.recursaCursos, c]
+                                  }));
+                                }}
+                                className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all cursor-pointer active:scale-95 ${
+                                  activo
+                                    ? 'bg-purple-500 text-white border-purple-500 shadow-sm'
+                                    : 'bg-white text-slate-500 border-slate-200 hover:border-purple-300 hover:text-purple-700'
+                                }`}
+                              >
+                                {activo ? '✓ ' : '+ '}{c}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {estForm.recursaCursos.length > 0 && (
+                          <p className="text-[9px] font-bold text-purple-700 uppercase tracking-wide">
+                            Recursando: {estForm.recursaCursos.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       {editingEstDni && (
@@ -1903,7 +1970,8 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                               turno: 'Mañana',
                               asignarDiferenteEF: false,
                               cursoEF: '1°1°',
-                              noCursaEF: false
+                              noCursaEF: false,
+                              recursaCursos: []
                             });
                             setEstError('');
                             setEstSuccess('');
@@ -2030,19 +2098,30 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                       <td data-label="Curso Origen" className="py-2.5 px-3 font-bold text-slate-700">{a.cursoOrigen}</td>
                       <td data-label="Turno" className="py-2.5 px-3 text-slate-600">{a.turno}</td>
                       <td data-label="Curso EF" className="py-2.5 px-3 text-right">
-                        {a.noCursaEF ? (
-                          <span className="inline-block bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase">
-                            No cursa EF
-                          </span>
-                        ) : a.cursoEF !== a.cursoOrigen ? (
-                          <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[9px] font-bold">
-                            {a.cursoEF} (Externo)
-                          </span>
-                        ) : (
-                          <span className="inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[9px] font-bold">
-                            {a.cursoEF}
-                          </span>
-                        )}
+                        <div className="flex flex-col items-end gap-1">
+                          {a.noCursaEF ? (
+                            <span className="inline-block bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase">
+                              No cursa EF
+                            </span>
+                          ) : a.cursoEF !== a.cursoOrigen ? (
+                            <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[9px] font-bold">
+                              {a.cursoEF} (Externo)
+                            </span>
+                          ) : (
+                            <span className="inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[9px] font-bold">
+                              {a.cursoEF}
+                            </span>
+                          )}
+                          {(a.recursaCursos || []).length > 0 && (
+                            <div className="flex flex-wrap justify-end gap-1">
+                              {(a.recursaCursos || []).map(c => (
+                                <span key={c} className="inline-block bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                                  Recursa {c}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td data-label="Acciones" className="py-2.5 px-3 text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -2056,7 +2135,8 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                                 turno: a.turno,
                                 asignarDiferenteEF: !a.noCursaEF && a.cursoEF !== a.cursoOrigen,
                                 cursoEF: a.cursoEF,
-                                noCursaEF: !!a.noCursaEF
+                                noCursaEF: !!a.noCursaEF,
+                                recursaCursos: a.recursaCursos || []
                               });
                               setEstError('');
                               setEstSuccess('');
@@ -2369,7 +2449,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {Object.keys(cursosConfig).sort().map((curso) => {
                         const config = cursosConfig[curso];
-                        const cantAlumnos = alumnos.filter(al => al.cursoEF === curso && !al.noCursaEF).length;
+                        const cantAlumnos = alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).length;
                         const docenteNombre = config.docenteNombre || 'Sin docente';
                         return (
                           <button
@@ -2634,7 +2714,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                         <h3 className="text-sm font-bold text-slate-800 mb-3 font-display">Tabla de Asistencia</h3>
                         {(() => {
                           const alumnosCurso = alumnos
-                            .filter(al => al.cursoEF === adminParteSelectedCurso && !al.noCursaEF)
+                            .filter(al => (al.cursoEF === adminParteSelectedCurso || (al.recursaCursos || []).includes(adminParteSelectedCurso)) && !al.noCursaEF)
                             .sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
                           return alumnosCurso.length === 0 ? (
                             <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50">

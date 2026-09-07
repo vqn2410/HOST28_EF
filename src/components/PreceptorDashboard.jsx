@@ -280,10 +280,10 @@ const PreceptorDashboard = () => {
     ).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   }, [partes, selectedCurso, selectedMes]);
 
-  // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso)
+  // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso, incluye recursantes)
   const alumnosRegulares = useMemo(() => {
     return alumnos
-      .filter(al => al.cursoEF === selectedCurso && !al.noCursaEF)
+      .filter(al => (al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.noCursaEF)
       .sort((a, b) => {
         const isExternoA = a.cursoOrigen !== selectedCurso;
         const isExternoB = b.cursoOrigen !== selectedCurso;
@@ -297,11 +297,12 @@ const PreceptorDashboard = () => {
       });
   }, [alumnos, selectedCurso]);
 
-  // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados)
+  // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados, no recursantes aquí)
   const alumnosReasignados = useMemo(() => {
     return alumnos
       .filter(al =>
         al.cursoOrigen === selectedCurso &&
+        !(al.recursaCursos || []).includes(selectedCurso) &&
         al.cursoEF !== selectedCurso &&
         !al.noCursaEF
       )
@@ -1839,7 +1840,7 @@ const PreceptorDashboard = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {alumnos
-                        .filter(al => al.cursoEF === selectedParteDetail.curso || Object.keys(selectedParteDetail.asistencia || {}).includes(al.dni))
+                        .filter(al => al.cursoEF === selectedParteDetail.curso || (al.recursaCursos || []).includes(selectedParteDetail.curso) || Object.keys(selectedParteDetail.asistencia || {}).includes(al.dni))
                         .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }))
                         .map(al => {
                           const state = selectedParteDetail.asistencia[al.dni] || '-';
@@ -1877,7 +1878,7 @@ const PreceptorDashboard = () => {
                             </tr>
                           );
                         })}
-                      {alumnos.filter(al => al.cursoEF === selectedParteDetail.curso || Object.keys(selectedParteDetail.asistencia || {}).includes(al.dni)).length === 0 && (
+                      {alumnos.filter(al => al.cursoEF === selectedParteDetail.curso || (al.recursaCursos || []).includes(selectedParteDetail.curso) || Object.keys(selectedParteDetail.asistencia || {}).includes(al.dni)).length === 0 && (
                         <tr>
                           <td colSpan="3" className="py-4 text-center text-slate-400 italic">
                             No hay alumnos registrados para este curso de Educación Física.

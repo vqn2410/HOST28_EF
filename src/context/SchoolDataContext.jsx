@@ -7,30 +7,31 @@ const SchoolDataContext = createContext(null);
 // Alumnos Semilla
 const INITIAL_ALUMNOS = [
   // 1°1° - Turno Mañana
-  { dni: "10001", nombre: "Álvarez, Martín", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
-  { dni: "10002", nombre: "Benítez, Camila", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
-  { dni: "10003", nombre: "Cardozo, Lucas", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
-  { dni: "10004", nombre: "Díaz, Florencia", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°" },
+  { dni: "10001", nombre: "Álvarez, Martín", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°", recursaCursos: [] },
+  { dni: "10002", nombre: "Benítez, Camila", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°", recursaCursos: [] },
+  { dni: "10003", nombre: "Cardozo, Lucas", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°", recursaCursos: [] },
+  { dni: "10004", nombre: "Díaz, Florencia", cursoOrigen: "1°1°", turno: "Mañana", cursoEF: "1°1°", recursaCursos: [] },
   
   // 1°2° - Turno Tarde
-  { dni: "10101", nombre: "Herrera, Julieta", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°" },
-  { dni: "10102", nombre: "Giménez, Ignacio", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°" },
+  { dni: "10101", nombre: "Herrera, Julieta", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°", recursaCursos: [] },
+  { dni: "10102", nombre: "Giménez, Ignacio", cursoOrigen: "1°2°", turno: "Tarde", cursoEF: "1°2°", recursaCursos: [] },
   
   // 2°1° - Turno Mañana
-  { dni: "20001", nombre: "Esquivel, Facundo", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°" },
-  { dni: "20002", nombre: "Flores, Martina", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°" },
+  { dni: "20001", nombre: "Esquivel, Facundo", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°", recursaCursos: [] },
+  // Flores, Martina cursa EF regular en 2°1° y además RECURSA 1°1° (multi-matriculación EF)
+  { dni: "20002", nombre: "Flores, Martina", cursoOrigen: "2°1°", turno: "Mañana", cursoEF: "2°1°", recursaCursos: ["1°1°"] },
   
   // Alumnos externos asignados a Educación Física en un curso diferente
-  { dni: "20003", nombre: "Gómez, Alan", cursoOrigen: "2°2°", turno: "Tarde", cursoEF: "1°1°" },
-  { dni: "30001", nombre: "López, Sofía", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "1°1°" },
+  { dni: "20003", nombre: "Gómez, Alan", cursoOrigen: "2°2°", turno: "Tarde", cursoEF: "1°1°", recursaCursos: [] },
+  { dni: "30001", nombre: "López, Sofía", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "1°1°", recursaCursos: [] },
   
   // 3°2° - Turno Tarde
-  { dni: "30002", nombre: "Rodríguez, Mateo", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°" },
-  { dni: "30003", nombre: "Sánchez, Valentina", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°" },
+  { dni: "30002", nombre: "Rodríguez, Mateo", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°", recursaCursos: [] },
+  { dni: "30003", nombre: "Sánchez, Valentina", cursoOrigen: "3°2°", turno: "Tarde", cursoEF: "3°2°", recursaCursos: [] },
 
   // 6°1° - Turno Mañana
-  { dni: "60001", nombre: "Ortega, Gonzalo", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°" },
-  { dni: "60002", nombre: "Peralta, Agostina", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°" }
+  { dni: "60001", nombre: "Ortega, Gonzalo", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°", recursaCursos: [] },
+  { dni: "60002", nombre: "Peralta, Agostina", cursoOrigen: "6°1°", turno: "Mañana", cursoEF: "6°1°", recursaCursos: [] }
 ];
 
 // Configuración inicial de Cursos
@@ -354,7 +355,8 @@ export const SchoolDataProvider = ({ children }) => {
   const agregarEstudiante = async (nuevoEstudiante) => {
     const studentObj = {
       ...nuevoEstudiante,
-      cursoEF: nuevoEstudiante.cursoEF || nuevoEstudiante.cursoOrigen
+      cursoEF: nuevoEstudiante.cursoEF || nuevoEstudiante.cursoOrigen,
+      recursaCursos: nuevoEstudiante.recursaCursos || []
     };
     try {
       await setDoc(doc(db, "alumnos", studentObj.dni), studentObj);
@@ -369,7 +371,8 @@ export const SchoolDataProvider = ({ children }) => {
   const agregarEstudiantesBatch = async (nuevosEstudiantes) => {
     const studentObjs = nuevosEstudiantes.map(nuevoEstudiante => ({
       ...nuevoEstudiante,
-      cursoEF: nuevoEstudiante.cursoEF || nuevoEstudiante.cursoOrigen
+      cursoEF: nuevoEstudiante.cursoEF || nuevoEstudiante.cursoOrigen,
+      recursaCursos: nuevoEstudiante.recursaCursos || []
     }));
     try {
       await Promise.all(studentObjs.map(studentObj => setDoc(doc(db, "alumnos", studentObj.dni), studentObj)));
@@ -389,7 +392,8 @@ export const SchoolDataProvider = ({ children }) => {
   const actualizarEstudiante = async (estudianteDni, datosActualizados) => {
     const studentObj = {
       ...datosActualizados,
-      cursoEF: datosActualizados.cursoEF || datosActualizados.cursoOrigen
+      cursoEF: datosActualizados.cursoEF || datosActualizados.cursoOrigen,
+      recursaCursos: datosActualizados.recursaCursos || []
     };
     try {
       await setDoc(doc(db, "alumnos", estudianteDni), studentObj, { merge: true });
@@ -402,6 +406,8 @@ export const SchoolDataProvider = ({ children }) => {
   };
 
   const eliminarEstudiante = async (estudianteDni) => {
+    // Buscar el estudiante antes de borrarlo para poder notificar a los docentes de todos sus cursos EF
+    const estudiante = alumnos.find(a => a.dni === estudianteDni);
     try {
       await deleteDoc(doc(db, "alumnos", estudianteDni));
       setAlumnos(prev => prev.filter(a => a.dni !== estudianteDni));
@@ -409,6 +415,39 @@ export const SchoolDataProvider = ({ children }) => {
       console.error("Error al eliminar estudiante en Firebase:", error);
       // Fallback
       setAlumnos(prev => prev.filter(a => a.dni !== estudianteDni));
+    }
+
+    // Notificación de baja para el/los docente(s) de los cursos de EF afectados
+    if (estudiante && !estudiante.noCursaEF) {
+      const cursosAfectados = [];
+      if (estudiante.cursoEF && estudiante.cursoEF !== 'No cursa') {
+        cursosAfectados.push(estudiante.cursoEF);
+      }
+      (estudiante.recursaCursos || []).forEach(c => {
+        if (!cursosAfectados.includes(c)) cursosAfectados.push(c);
+      });
+
+      const fechaFormateada = new Date().toLocaleDateString('es-AR');
+      for (const curso of cursosAfectados) {
+        const notifId = `notif_${Date.now()}_${curso.replace(/[^0-9]/g, '')}`;
+        const notifObj = {
+          id: notifId,
+          curso,
+          fecha: new Date().toISOString().split('T')[0],
+          mensaje: `El estudiante ${estudiante.nombre} (DNI ${estudiante.dni}) fue dado de baja de la matrícula y ya no cursa Educación Física en ${curso}.`,
+          tipo: 'estudiante_baja',
+          fechaCreacion: new Date().toISOString(),
+          leidaPor: []
+        };
+        try {
+          await setDoc(doc(db, "notificaciones", notifId), notifObj);
+          setNotificaciones((prev) => [notifObj, ...prev]);
+        } catch (error) {
+          console.error("Error al crear notificación de baja en Firebase:", error);
+          // Fallback
+          setNotificaciones((prev) => [notifObj, ...prev]);
+        }
+      }
     }
   };
 

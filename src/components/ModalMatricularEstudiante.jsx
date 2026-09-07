@@ -26,7 +26,8 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
       turno: determinarTurno(inicial),
       asignarDiferenteEF: false,
       cursoEF: inicial,
-      noCursaEF: false
+      noCursaEF: false,
+      recursaCursos: []
     };
   });
   const [error, setError] = useState('');
@@ -48,7 +49,8 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
       turno: determinarTurno(inicial),
       asignarDiferenteEF: false,
       cursoEF: inicial,
-      noCursaEF: false
+      noCursaEF: false,
+      recursaCursos: []
     });
     setError('');
     setSuccess('');
@@ -64,7 +66,8 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
       turno: al.turno || determinarTurno(al.cursoOrigen || '1°1°'),
       asignarDiferenteEF: al.noCursaEF ? false : !!(al.cursoEF && al.cursoEF !== al.cursoOrigen),
       cursoEF: (al.cursoEF && al.cursoEF !== 'No cursa') ? al.cursoEF : al.cursoOrigen,
-      noCursaEF: !!al.noCursaEF
+      noCursaEF: !!al.noCursaEF,
+      recursaCursos: al.recursaCursos || []
     });
     setEditingExisting(true);
     setError('');
@@ -87,7 +90,7 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
     setError('');
     setSuccess('');
 
-    const { nombre, dni, cursoOrigen, turno, asignarDiferenteEF, cursoEF, noCursaEF } = form;
+    const { nombre, dni, cursoOrigen, turno, asignarDiferenteEF, cursoEF, noCursaEF, recursaCursos } = form;
 
     // Regla 1: campos obligatorios
     if (!nombre.trim() || !dni.trim() || !cursoOrigen || !turno) {
@@ -101,6 +104,12 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
       return;
     }
 
+    // Regla 3: no puede recursar el mismo curso donde cursa EF
+    if (!noCursaEF && recursaCursos.includes(cursoEF)) {
+      setError("No podés marcar como recursada la misma división donde ya cursa EF.");
+      return;
+    }
+
     const cursoEFDefinitivo = noCursaEF ? 'No cursa' : (asignarDiferenteEF ? cursoEF : cursoOrigen);
 
     const datosEstudiante = {
@@ -109,15 +118,20 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
       cursoOrigen,
       turno,
       cursoEF: cursoEFDefinitivo,
-      noCursaEF: !!noCursaEF
+      noCursaEF: !!noCursaEF,
+      recursaCursos: noCursaEF ? [] : recursaCursos
     };
+
+    const resumenCursada = noCursaEF
+      ? 'No cursa'
+      : [cursoEFDefinitivo, ...(recursaCursos.length > 0 ? recursaCursos : [])].join(', ');
 
     setIsSubmitting(true);
     try {
       if (editingExisting) {
         // Cambio de curso: actualizar el alumno existente (sin duplicarlo)
         await actualizarEstudiante(dni.trim(), datosEstudiante);
-        setSuccess(`¡Cambio de curso registrado! "${nombre.trim()}" ahora cursa EF en ${cursoEFDefinitivo === 'No cursa' ? 'No cursa' : cursoEFDefinitivo}.`);
+        setSuccess(`¡Cambio de curso registrado! "${nombre.trim()}" ahora cursa EF en ${resumenCursada}.`);
         if (onStudentAdded) onStudentAdded(datosEstudiante);
       } else {
         // Regla 3: no puede existir un estudiante con el mismo DNI
@@ -187,7 +201,7 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
             <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
             <div className="text-[11px] text-amber-800 font-semibold leading-relaxed">
               <span className="font-extrabold block mb-0.5">Este estudiante ya está matriculado</span>
-              El DNI pertenece a <strong>{alumnoExistente.nombre}</strong> (Curso {alumnoExistente.cursoOrigen}{alumnoExistente.cursoEF && alumnoExistente.cursoEF !== alumnoExistente.cursoOrigen ? ` • EF: ${alumnoExistente.cursoEF}` : ''}). No se puede duplicar la matrícula.
+              El DNI pertenece a <strong>{alumnoExistente.nombre}</strong> (Curso {alumnoExistente.cursoOrigen}{alumnoExistente.cursoEF && alumnoExistente.cursoEF !== alumnoExistente.cursoOrigen ? ` • EF: ${alumnoExistente.cursoEF}` : ''}{(alumnoExistente.recursaCursos || []).length > 0 ? ` • Recursa: ${alumnoExistente.recursaCursos.join(', ')}` : ''}). No se puede duplicar la matrícula.
               <button
                 type="button"
                 onClick={() => cargarDatosExistentes(alumnoExistente)}
@@ -276,7 +290,8 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
                     setForm({
                       ...form,
                       noCursaEF: checked,
-                      asignarDiferenteEF: checked ? false : form.asignarDiferenteEF
+                      asignarDiferenteEF: checked ? false : form.asignarDiferenteEF,
+                      recursaCursos: checked ? [] : form.recursaCursos
                     });
                   }}
                   className="sr-only peer"
@@ -308,7 +323,11 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
                     <label className="block text-[9px] font-bold text-accent-600 uppercase mb-1">Curso de Educación Física Destino</label>
                     <select
                       value={form.cursoEF}
-                      onChange={e => setForm({ ...form, cursoEF: e.target.value })}
+                      onChange={e => setForm({
+                        ...form,
+                        cursoEF: e.target.value,
+                        recursaCursos: form.recursaCursos.filter(x => x !== e.target.value)
+                      })}
                       className="w-full bg-white border border-accent-500/20 focus:border-accent-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none font-bold cursor-pointer"
                     >
                       {CURSOS.map(c => <option key={c} value={c}>Curso {c}</option>)}
@@ -318,6 +337,51 @@ const ModalMatricularEstudiante = ({ open, onClose, cursoPredeterminado, onStude
               </>
             )}
           </div>
+
+          {/* Cursada Adicional: recursar otra división EF (multi-matriculación) */}
+          {!form.noCursaEF && (
+            <div className="pt-2 bg-purple-50/50 p-3.5 rounded-xl border border-purple-200 space-y-3 animate-pulse-once">
+              <div>
+                <span className="text-[10px] font-bold text-purple-900 leading-tight block">
+                  Cursada Adicional (Recursar otra división)
+                </span>
+                <p className="text-[9px] text-slate-500 font-semibold mt-1 leading-relaxed">
+                  Si además <strong>recursa</strong> otra división EF, marcá esa división. El estudiante figurará en las planillas de <strong>todos</strong> los cursos seleccionados, sin necesidad de que sean su curso de origen.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {CURSOS.filter(c => c !== form.cursoEF).map(c => {
+                  const activo = form.recursaCursos.includes(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setForm(prev => ({
+                          ...prev,
+                          recursaCursos: activo
+                            ? prev.recursaCursos.filter(x => x !== c)
+                            : [...prev.recursaCursos, c]
+                        }));
+                      }}
+                      className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all cursor-pointer active:scale-95 ${
+                        activo
+                          ? 'bg-purple-500 text-white border-purple-500 shadow-sm'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-purple-300 hover:text-purple-700'
+                      }`}
+                    >
+                      {activo ? '✓ ' : '+ '}{c}
+                    </button>
+                  );
+                })}
+              </div>
+              {form.recursaCursos.length > 0 && (
+                <p className="text-[9px] font-bold text-purple-700 uppercase tracking-wide">
+                  Recursando: {form.recursaCursos.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <button

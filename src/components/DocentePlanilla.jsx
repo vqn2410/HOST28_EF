@@ -104,11 +104,11 @@ const DocentePlanilla = () => {
     ).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   }, [partes, selectedCurso, selectedMes]);
 
-  // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso)
+  // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso, incluye recursantes)
   const alumnosRegulares = useMemo(() => {
     if (!selectedCurso) return [];
     return alumnos
-      .filter(al => al.cursoEF === selectedCurso && !al.noCursaEF)
+      .filter(al => (al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.noCursaEF)
       .sort((a, b) => {
         const isExternoA = a.cursoOrigen !== selectedCurso;
         const isExternoB = b.cursoOrigen !== selectedCurso;
@@ -122,12 +122,13 @@ const DocentePlanilla = () => {
       });
   }, [alumnos, selectedCurso]);
 
-  // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados)
+  // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados, no recursantes aquí)
   const alumnosReasignados = useMemo(() => {
     if (!selectedCurso) return [];
     return alumnos
       .filter(al => 
         al.cursoOrigen === selectedCurso && 
+        !(al.recursaCursos || []).includes(selectedCurso) &&
         al.cursoEF !== selectedCurso &&
         !al.noCursaEF
       )

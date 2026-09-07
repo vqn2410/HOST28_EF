@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSchoolData } from '../context/SchoolDataContext';
 import DocenteAsistencia from './DocenteAsistencia';
 import DocenteLibroTemas from './DocenteLibroTemas';
 import DocenteInformes from './DocenteInformes';
 import DocentePlanilla from './DocentePlanilla';
-import { CalendarCheck, BookOpen, AlertCircle, Award, Calendar, LayoutDashboard } from 'lucide-react';
+import { CalendarCheck, BookOpen, AlertCircle, Award, Calendar, LayoutDashboard, Bell, UserX, CheckCircle2, MailOpen } from 'lucide-react';
 
 const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiveTab }) => {
   const { user } = useAuth();
+  const { notificaciones, marcarNotificacionLeida } = useSchoolData();
   
   const [localActiveTab, setLocalActiveTab] = useState(() => {
     return user.rol === "Equipo de Conducción" ? 'dashboard' : 'dashboard';
@@ -17,6 +19,25 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
   const setActiveTab = propSetActiveTab !== undefined ? propSetActiveTab : setLocalActiveTab;
 
   const esDirectivo = user.rol === "Equipo de Conducción";
+
+  const cursosAsignados = useMemo(() => {
+    return (user.cursosAsignados || user.perfil?.cursosAsignados || []);
+  }, [user]);
+
+  // Notificaciones dirigidas a los cursos de este docente (bajas de estudiantes, etc.)
+  const notificacionesDocente = useMemo(() => {
+    return notificaciones
+      .filter(n => cursosAsignados.includes(n.curso))
+      .sort((a, b) => new Date(b.fechaCreacion || b.fecha) - new Date(a.fechaCreacion || a.fecha));
+  }, [notificaciones, cursosAsignados]);
+
+  const notificacionesNoLeidas = useMemo(() => {
+    return notificacionesDocente.filter(n => !(n.leidaPor || []).includes(user.dni));
+  }, [notificacionesDocente, user.dni]);
+
+  const notificacionesBajas = useMemo(() => {
+    return notificacionesDocente.filter(n => n.tipo === 'estudiante_baja');
+  }, [notificacionesDocente]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
@@ -121,6 +142,73 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
       {/* Renderizado Dinámico */}
       <div className="pt-2 animate-fade-in">
         {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            {/* Panel de Novedades / Notificaciones para el Docente */}
+            {notificacionesDocente.length > 0 && (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-lg overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-accent-500/5 to-transparent">
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative">
+                      <div className="w-9 h-9 rounded-xl bg-accent-500/10 border border-accent-500/20 text-accent-600 flex items-center justify-center">
+                        <Bell size={16} />
+                      </div>
+                      {notificacionesNoLeidas.length > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold flex items-center justify-center">
+                          {notificacionesNoLeidas.length}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 font-display">Novedades de tus Cursos</h3>
+                      <p className="text-[10px] text-slate-500 font-semibold">
+                        {notificacionesNoLeidas.length > 0
+                          ? `${notificacionesNoLeidas.length} sin leer • bajas, asistencias y avisos`
+                          : 'Todas las novedades fueron leídas'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <ul className="divide-y divide-slate-50 max-h-72 overflow-y-auto custom-scrollbar">
+                  {notificacionesDocente.map((n) => {
+                    const leida = (n.leidaPor || []).includes(user.dni);
+                    const esBaja = n.tipo === 'estudiante_baja';
+                    return (
+                      <li key={n.id} className={`px-5 py-3 flex items-start gap-3 transition-colors ${leida ? 'bg-white opacity-70' : 'bg-accent-500/[0.03]'}`}>
+                        <div className={`mt-0.5 shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border ${esBaja ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+                          {esBaja ? <UserX size={14} /> : <MailOpen size={14} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-slate-800 leading-relaxed">{n.mensaje}</p>
+                          <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase flex items-center gap-1.5">
+                            <span className="inline-block bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{n.curso}</span>
+                            <span>{new Date(n.fechaCreacion || n.fecha).toLocaleDateString('es-AR')}</span>
+                            {esBaja && <span className="inline-block bg-red-50 text-red-600 px-1.5 py-0.5 rounded">Baja</span>}
+                          </p>
+                        </div>
+                        {!leida && (
+                          <button
+                            onClick={() => marcarNotificacionLeida(n.id, user.dni)}
+                            className="shrink-0 inline-flex items-center gap-1 bg-white hover:bg-accent-50 text-accent-600 border border-accent-200 hover:border-accent-300 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all cursor-pointer"
+                          >
+                            <CheckCircle2 size={11} />
+                            Marcar leída
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {notificacionesBajas.length > 0 && (
+                  <div className="px-5 py-3 bg-gradient-to-r from-red-500/5 to-transparent border-t border-slate-100">
+                    <span className="text-[10px] text-red-600 font-bold uppercase flex items-center gap-1.5">
+                      <UserX size={12} />
+                      En {notificacionesBajas.length} baja{notificacionesBajas.length > 1 ? 's' : ''} de matrícula detectada{notificacionesBajas.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-4">
             <button onClick={() => setActiveTab('asistencia')} className="glass-panel text-left p-6 rounded-3xl border border-slate-200/60 hover:border-primary-500/50 shadow-lg hover:shadow-xl transition-all group flex flex-col gap-4 cursor-pointer relative overflow-hidden bg-white hover:bg-slate-50">
               <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-primary-500/10 transition-colors"></div>
@@ -162,6 +250,7 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
                 <p className="text-xs text-slate-500 mt-1.5 font-medium leading-relaxed">Genera reportes de seguimiento para alumnos específicos y notifica preceptoría.</p>
               </div>
             </button>
+          </div>
           </div>
         )}
         {activeTab === 'asistencia' && <DocenteAsistencia />}

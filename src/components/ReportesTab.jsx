@@ -57,7 +57,7 @@ const barColorClass = (media) => {
 const computeCursoMonthStats = (curso, mes, { alumnos, partes, cursosConfig, feriados }) => {
   const config = cursosConfig[curso];
   const diasSemana = config?.dias || (curso.endsWith('1°') ? [2, 4] : [1, 3]);
-  const alumnosCurso = alumnos.filter(al => al.cursoEF === curso && !al.noCursaEF);
+  const alumnosCurso = alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF);
 
   const year = 2026;
   const monthIndex = parseInt(mes) - 1;

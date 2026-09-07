@@ -113,7 +113,7 @@ const DocenteAsistencia = () => {
 
       // Asistencia de alumnos para clase no dictada: marcar todos como "-"
       const asistenciaFinal = {};
-      alumnos.filter(al => al.cursoEF === curso && !al.noCursaEF).forEach(al => {
+      alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).forEach(al => {
         asistenciaFinal[al.dni] = '-';
       });
 
@@ -285,7 +285,7 @@ const DocenteAsistencia = () => {
   const alumnosFiltrados = useMemo(() => {
     if (!selectedCurso) return [];
     return alumnos
-      .filter(al => al.cursoOrigen === selectedCurso || al.cursoEF === selectedCurso)
+      .filter(al => al.cursoOrigen === selectedCurso || al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso))
       .sort((a, b) => {
         const isExternoA = a.cursoOrigen !== selectedCurso;
         const isExternoB = b.cursoOrigen !== selectedCurso;
@@ -339,7 +339,7 @@ const DocenteAsistencia = () => {
 
     // Inicializar asistencia (solo alumnos que cursan EF activamente en esta división)
     const initialAsistencia = {};
-    alumnos.filter(al => al.cursoEF === curso && !al.noCursaEF).forEach(al => {
+    alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).forEach(al => {
       initialAsistencia[al.dni] = 'Presente';
     });
     setAsistenciaState(initialAsistencia);
@@ -395,7 +395,7 @@ const DocenteAsistencia = () => {
       dinamicaFinal = '-';
 
       // Marcar a todos los alumnos activos en este curso con "-" (no se tomó asistencia porque no hubo clases)
-      alumnosFiltrados.filter(al => al.cursoEF === selectedCurso && !al.noCursaEF).forEach(al => {
+      alumnosFiltrados.filter(al => (al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.noCursaEF).forEach(al => {
         asistenciaFinal[al.dni] = '-';
       });
     } else {
@@ -602,7 +602,7 @@ const DocenteAsistencia = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {cursosAsignados.map((curso) => {
-                  const cantidad = alumnos.filter(al => al.cursoEF === curso).length;
+                  const cantidad = alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).length;
                   const config = cursosConfig[curso];
                   const turno = config ? config.turno : (curso.endsWith('1°') ? 'Mañana' : 'Tarde');
                   
@@ -977,7 +977,7 @@ const DocenteAsistencia = () => {
                       <tbody className="divide-y divide-slate-100">
                         {alumnosFiltrados.map((al) => {
                           const esExterno = al.cursoOrigen !== selectedCurso;
-                          const esInactivoEnEsteCurso = al.noCursaEF || (al.cursoEF !== selectedCurso && al.cursoOrigen === selectedCurso);
+                          const esInactivoEnEsteCurso = al.noCursaEF || (al.cursoEF !== selectedCurso && !(al.recursaCursos || []).includes(selectedCurso) && al.cursoOrigen === selectedCurso);
                           const controlValue = asistenciaState[al.dni] || 'Presente';
                           
                           return (
@@ -992,6 +992,11 @@ const DocenteAsistencia = () => {
                                 }>
                                   {al.nombre}
                                 </span>
+                                {(al.recursaCursos || []).includes(selectedCurso) && (
+                                  <span className="ml-2 inline-block bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">
+                                    Recursa
+                                  </span>
+                                )}
                               </td>
                               <td data-label="DNI" className="py-3 px-3 font-mono text-slate-500">{al.dni}</td>
                               <td data-label="Curso Origen" className="py-3 px-3 font-medium">
@@ -1001,7 +1006,7 @@ const DocenteAsistencia = () => {
                                   </span>
                                 ) : al.cursoEF !== selectedCurso ? (
                                   <span className="inline-block bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-0.5 rounded text-[9px] font-bold">
-                                    Cursa en {al.cursoEF}
+                                    Cursa en {al.cursoEF}{(al.recursaCursos || []).includes(selectedCurso) ? ` • Recursa ${selectedCurso}` : ''}
                                   </span>
                                 ) : esExterno ? (
                                   <span className="inline-block bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[9px] font-bold">
