@@ -113,7 +113,7 @@ const DocenteAsistencia = () => {
 
       // Asistencia de alumnos para clase no dictada: marcar todos como "-"
       const asistenciaFinal = {};
-      alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).forEach(al => {
+      alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF && !al.fechaDeBaja).forEach(al => {
         asistenciaFinal[al.dni] = '-';
       });
 
@@ -285,7 +285,7 @@ const DocenteAsistencia = () => {
   const alumnosFiltrados = useMemo(() => {
     if (!selectedCurso) return [];
     return alumnos
-      .filter(al => al.cursoOrigen === selectedCurso || al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso))
+      .filter(al => (al.cursoOrigen === selectedCurso || al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.fechaDeBaja)
       .sort((a, b) => {
         const isExternoA = a.cursoOrigen !== selectedCurso;
         const isExternoB = b.cursoOrigen !== selectedCurso;
@@ -339,7 +339,7 @@ const DocenteAsistencia = () => {
 
     // Inicializar asistencia (solo alumnos que cursan EF activamente en esta división)
     const initialAsistencia = {};
-    alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).forEach(al => {
+    alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF && !al.fechaDeBaja).forEach(al => {
       initialAsistencia[al.dni] = 'Presente';
     });
     setAsistenciaState(initialAsistencia);
@@ -395,7 +395,7 @@ const DocenteAsistencia = () => {
       dinamicaFinal = '-';
 
       // Marcar a todos los alumnos activos en este curso con "-" (no se tomó asistencia porque no hubo clases)
-      alumnosFiltrados.filter(al => (al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.noCursaEF).forEach(al => {
+      alumnosFiltrados.filter(al => (al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.noCursaEF && !al.fechaDeBaja).forEach(al => {
         asistenciaFinal[al.dni] = '-';
       });
     } else {
@@ -602,7 +602,7 @@ const DocenteAsistencia = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {cursosAsignados.map((curso) => {
-                  const cantidad = alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).length;
+                  const cantidad = alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF && !al.fechaDeBaja).length;
                   const config = cursosConfig[curso];
                   const turno = config ? config.turno : (curso.endsWith('1°') ? 'Mañana' : 'Tarde');
                   

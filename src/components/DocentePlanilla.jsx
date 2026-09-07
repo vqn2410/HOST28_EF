@@ -105,10 +105,13 @@ const DocentePlanilla = () => {
   }, [partes, selectedCurso, selectedMes]);
 
   // 1. Filtrar Alumnos Oficiales / Regulares (activos en EF en este curso, incluye recursantes)
+  // Si el alumno fue dado de baja, solo figura mientras su fechaDeBaja caiga dentro del mes seleccionado (para conservar el histórico de asistencias)
+  const inicioMes = `2026-${selectedMes}-01`;
+  const esActivoEnMes = (al) => !al.fechaDeBaja || al.fechaDeBaja >= inicioMes;
   const alumnosRegulares = useMemo(() => {
     if (!selectedCurso) return [];
     return alumnos
-      .filter(al => (al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.noCursaEF)
+      .filter(al => (al.cursoEF === selectedCurso || (al.recursaCursos || []).includes(selectedCurso)) && !al.noCursaEF && esActivoEnMes(al))
       .sort((a, b) => {
         const isExternoA = a.cursoOrigen !== selectedCurso;
         const isExternoB = b.cursoOrigen !== selectedCurso;
@@ -120,7 +123,7 @@ const DocentePlanilla = () => {
         const nombreB = (b.nombre || '').trim().toLowerCase();
         return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
       });
-  }, [alumnos, selectedCurso]);
+  }, [alumnos, selectedCurso, selectedMes]);
 
   // 2. Filtrar Alumnos Matriculados en este curso pero que hacen EF en otro curso (no exceptuados, no recursantes aquí)
   const alumnosReasignados = useMemo(() => {
@@ -130,14 +133,15 @@ const DocentePlanilla = () => {
         al.cursoOrigen === selectedCurso && 
         !(al.recursaCursos || []).includes(selectedCurso) &&
         al.cursoEF !== selectedCurso &&
-        !al.noCursaEF
+        !al.noCursaEF &&
+        esActivoEnMes(al)
       )
       .sort((a, b) => {
         const nombreA = (a.nombre || '').trim().toLowerCase();
         const nombreB = (b.nombre || '').trim().toLowerCase();
         return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
       });
-  }, [alumnos, selectedCurso]);
+  }, [alumnos, selectedCurso, selectedMes]);
 
   // 3. Filtrar Alumnos Exceptuados de EF
   const alumnosExceptuados = useMemo(() => {
@@ -145,14 +149,15 @@ const DocentePlanilla = () => {
     return alumnos
       .filter(al => 
         al.cursoOrigen === selectedCurso && 
-        !!al.noCursaEF
+        !!al.noCursaEF &&
+        esActivoEnMes(al)
       )
       .sort((a, b) => {
         const nombreA = (a.nombre || '').trim().toLowerCase();
         const nombreB = (b.nombre || '').trim().toLowerCase();
         return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
       });
-  }, [alumnos, selectedCurso]);
+  }, [alumnos, selectedCurso, selectedMes]);
 
   // Obtener estado de asistencia histórico para un alumno
   const getAsistenciaEstado = (alumnoDni, fechaStr) => {
@@ -444,6 +449,11 @@ const DocentePlanilla = () => {
                     <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
                       <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                         {al.nombre}
+                        {al.fechaDeBaja && (
+                          <span className="ml-2 inline-block bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                            Baja {new Date(al.fechaDeBaja + 'T00:00:00').toLocaleDateString('es-AR')}
+                          </span>
+                        )}
                         {al.cursoOrigen !== selectedCurso && (
                           <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-255 px-1.5 py-0.5 rounded text-[9px] font-bold">
                             {al.cursoOrigen} (Externo)
@@ -606,7 +616,14 @@ const DocentePlanilla = () => {
 
                   return (
                     <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
-                      <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
+                      <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                          {al.nombre}
+                          {al.fechaDeBaja && (
+                            <span className="ml-2 inline-block bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                              Baja {new Date(al.fechaDeBaja + 'T00:00:00').toLocaleDateString('es-AR')}
+                            </span>
+                          )}
+                        </td>
                       <td data-label="DNI" className="py-3 px-2 text-slate-400 font-mono">{al.dni}</td>
                       <td data-label="Curso de EF Destino" className="py-3 px-3">
                         <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[10px] font-bold">

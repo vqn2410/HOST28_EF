@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search } from 'lucide-react';
+import { UserPlus, GraduationCap, CheckCircle2, AlertTriangle, Users, BookOpen, CalendarRange, Edit, Trash2, Upload, Download, Search, X } from 'lucide-react';
 
 const AdminPanel = ({ activeTabOverride, onNavigate }) => {
   const { alumnos, agregarEstudiante, agregarEstudiantesBatch, actualizarEstudiante, eliminarEstudiante, cursosConfig, actualizarCursoConfig, eliminarCursoConfig, solicitudesFaltantes = [], informes = [], partes = [], guardarParteEF, actualizarParteEF, eliminarParteEF, parteToEditGlobal, setParteToEditGlobal, feriados, agregarFeriado, agregarRecesoInvierno, eliminarFeriado } = useSchoolData();
@@ -10,6 +10,12 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
   // Estados para el modo de edición
   const [editingUsrDni, setEditingUsrDni] = useState(null);
   const [editingEstDni, setEditingEstDni] = useState(null);
+
+  // Estados para el modal de Baja Administrativa de estudiante
+  const [bajaEstudiante, setBajaEstudiante] = useState(null);
+  const [bajaFecha, setBajaFecha] = useState(() => new Date().toISOString().split('T')[0]);
+  const [bajaError, setBajaError] = useState('');
+  const [bajaEnviando, setBajaEnviando] = useState(false);
   const [localActiveTab, setLocalActiveTab] = useState(() => {
     return user?.rol === 'Preceptor' ? 'estudiantes_carga' : 'usuarios_carga';
   });
@@ -572,7 +578,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
 
     // Init asistencia (solo alumnos activos en este curso EF)
     const initialAsistencia = {};
-    alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).forEach(al => {
+    alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF && !al.fechaDeBaja).forEach(al => {
       initialAsistencia[al.dni] = 'Presente';
     });
     setAdminParteAsistencia(initialAsistencia);
@@ -666,7 +672,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
       dinamicaFinal = '-';
       actividadesFinal = '-';
       // Marcar todos como "-"
-      alumnos.filter(al => (al.cursoEF === adminParteSelectedCurso || (al.recursaCursos || []).includes(adminParteSelectedCurso)) && !al.noCursaEF).forEach(al => {
+      alumnos.filter(al => (al.cursoEF === adminParteSelectedCurso || (al.recursaCursos || []).includes(adminParteSelectedCurso)) && !al.noCursaEF && !al.fechaDeBaja).forEach(al => {
         asistenciaFinal[al.dni] = '-';
       });
     } else {
@@ -2092,8 +2098,17 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {alumnosFiltradosYOrdenados.map((a, i) => (
-                    <tr key={i} className="hover:bg-slate-50 text-slate-700">
-                      <td data-label="Apellido, Nombre" className="py-2.5 px-3 font-semibold text-slate-800">{a.nombre}</td>
+                    <tr key={i} className={`hover:bg-slate-50 text-slate-700 ${a.fechaDeBaja ? 'opacity-60' : ''}`}>
+                      <td data-label="Apellido, Nombre" className="py-2.5 px-3 font-semibold text-slate-800">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={a.fechaDeBaja ? 'line-through text-slate-400' : ''}>{a.nombre}</span>
+                          {a.fechaDeBaja && (
+                            <span className="inline-block bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase">
+                              Baja {new Date(a.fechaDeBaja + 'T00:00:00').toLocaleDateString('es-AR')}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td data-label="DNI" className="py-2.5 px-3 font-mono text-slate-500">{a.dni}</td>
                       <td data-label="Curso Origen" className="py-2.5 px-3 font-bold text-slate-700">{a.cursoOrigen}</td>
                       <td data-label="Turno" className="py-2.5 px-3 text-slate-600">{a.turno}</td>
@@ -2149,12 +2164,13 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                           </button>
                           <button
                             onClick={() => {
-                              if (window.confirm(`¿Está seguro de que desea eliminar al alumno ${a.nombre} (DNI: ${a.dni})?`)) {
-                                eliminarEstudiante(a.dni);
-                              }
+                              setBajaEstudiante(a);
+                              setBajaFecha(new Date().toISOString().split('T')[0]);
+                              setBajaError('');
+                              navigateToAdminTab('estudiantes_carga');
                             }}
                             className="p-1 text-red-500 hover:text-red-700 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
-                            title="Eliminar"
+                            title="Dar de baja (conserva asistencias)"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -2164,6 +2180,96 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Baja Administrativa: solicita la fecha de baja y conserva las asistencias registradas */}
+        {bajaEstudiante && (
+          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-3xl border border-red-200 shadow-2xl max-w-md w-full p-6 relative overflow-hidden animate-zoom-in max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl -mr-6 -mt-6"></div>
+
+              <button
+                type="button"
+                onClick={() => setBajaEstudiante(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-1.5 rounded-full border border-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+              >
+                <X size={14} />
+              </button>
+
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 mb-3">
+                  <Trash2 size={24} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 font-display">Confirmar Baja Administrativa</h3>
+                <p className="text-xs text-slate-500 mt-1.5 font-semibold leading-relaxed">
+                  Vas a dar de baja a <strong className="text-slate-800">{bajaEstudiante.nombre}</strong> (DNI {bajaEstudiante.dni})
+                  {bajaEstudiante.cursoEF && bajaEstudiante.cursoEF !== 'No cursa' ? ` de Educación Física en ${bajaEstudiante.cursoEF}` : ''}.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 font-semibold leading-relaxed mb-4">
+                Sus <strong>asistencias quedan guardadas</strong> hasta la fecha de baja. A partir de esa fecha dejará de figurar en las planillas y controles de asistencia, pero el registro histórico se conserva.
+              </div>
+
+              {bajaError && (
+                <div className="mb-4 p-3 bg-red-500/5 border border-red-500/15 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0 text-red-600" />
+                  <span>{bajaError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Fecha de Baja <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  value={bajaFecha}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={e => setBajaFecha(e.target.value)}
+                  className="w-full bg-white border border-slate-300 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-mono"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setBajaEstudiante(null)}
+                  className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans border border-slate-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={!bajaFecha || bajaEnviando}
+                  onClick={async () => {
+                    if (bajaEnviando) return;
+                    const hoyISO = new Date().toISOString().split('T')[0];
+                    if (!bajaFecha) {
+                      setBajaError("La fecha de baja es obligatoria.");
+                      return;
+                    }
+                    if (bajaFecha > hoyISO) {
+                      setBajaError("La fecha de baja no puede ser posterior a hoy.");
+                      return;
+                    }
+                    setBajaEnviando(true);
+                    try {
+                      await eliminarEstudiante(bajaEstudiante.dni, bajaFecha);
+                      setBajaEstudiante(null);
+                      setBajaFecha(new Date().toISOString().split('T')[0]);
+                    } catch (error) {
+                      console.error("Error al confirmar baja:", error);
+                    } finally {
+                      setBajaEnviando(false);
+                    }
+                  }}
+                  className="w-2/3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:opacity-60 text-white text-[10px] font-bold py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 size={14} />
+                  {bajaEnviando ? 'Procesando...' : 'Confirmar Baja'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -2449,7 +2555,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {Object.keys(cursosConfig).sort().map((curso) => {
                         const config = cursosConfig[curso];
-                        const cantAlumnos = alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF).length;
+                        const cantAlumnos = alumnos.filter(al => (al.cursoEF === curso || (al.recursaCursos || []).includes(curso)) && !al.noCursaEF && !al.fechaDeBaja).length;
                         const docenteNombre = config.docenteNombre || 'Sin docente';
                         return (
                           <button
@@ -2714,7 +2820,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                         <h3 className="text-sm font-bold text-slate-800 mb-3 font-display">Tabla de Asistencia</h3>
                         {(() => {
                           const alumnosCurso = alumnos
-                            .filter(al => (al.cursoEF === adminParteSelectedCurso || (al.recursaCursos || []).includes(adminParteSelectedCurso)) && !al.noCursaEF)
+                            .filter(al => (al.cursoEF === adminParteSelectedCurso || (al.recursaCursos || []).includes(adminParteSelectedCurso)) && !al.noCursaEF && !al.fechaDeBaja)
                             .sort((a,b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
                           return alumnosCurso.length === 0 ? (
                             <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50">

@@ -405,9 +405,68 @@ export const SchoolDataProvider = ({ children }) => {
     }
   };
 
-  const eliminarEstudiante = async (estudianteDni) => {
-    // Buscar el estudiante antes de borrarlo para poder notificar a los docentes de todos sus cursos EF
+  const eliminarEstudiante = async (estudianteDni, fechaDeBaja = null) => {
+    // Buscar el estudiante antes de eliminar/desactivar para poder notificar a los docentes de todos sus cursos EF
     const estudiante = alumnos.find(a => a.dni === estudianteDni);
+    if (!estudiante) return;
+
+    // Si se informa una fecha de baja: baja administrativa (conserva el registro + sus asistencias previas)
+    if (fechaDeBaja) {
+      const updatedEstudiante = { ...estudiante, fechaDeBaja };
+      try {
+        await updateDoc(doc(db, "alumnos", estudianteDni), { fechaDeBaja });
+        setAlumnos(prev => prev.map(a => a.dni === estudianteDni ? { ...a, fechaDeBaja } : a));
+      } catch (error) {
+        console.error("Error al dar de baja estudiante en Firebase:", error);
+        // Fallback
+        setAlumnos(prev => prev.map(a => a.dni === estudianteDni ? { ...a, fechaDeBaja } : a));
+      }
+
+      // Notificación de baja para el/los docente(s) de los cursos de EF afectados (a partir de la fecha de baja)
+      if (!estudiante.noCursaEF) {
+        const cursosAfectados = [];
+        if (estudiante.cursoEF && estudiante.cursoEF !== 'No cursa') {
+          cursosAfectados.push(estudiante.cursoEF);
+        }
+        (estudiante.recursaCursos || []).forEach(c => {
+          if (!cursosAfectados.includes(c)) cursosAfectados.push(c);
+        });
+
+        const fechaFormateada = new Date(fechaDeBaja + 'T00:00:00').toLocaleDateString('es-AR');
+        for (const curso of cursosAfectados) {
+          // Idempotencia: si ya existe una notificación de baja para este estudiante en este curso, no se reenvía (para que se vea una sola vez)
+          const yaNotificado = notificaciones.some(n =>
+            n.tipo === 'estudiante_baja' &&
+            n.estudianteDni === estudianteDni &&
+            n.curso === curso
+          );
+          if (yaNotificado) continue;
+
+          const notifId = `notif_${Date.now()}_${curso.replace(/[^0-9]/g, '')}`;
+          const notifObj = {
+            id: notifId,
+            curso,
+            estudianteDni,
+            fecha: fechaDeBaja,
+            mensaje: `El estudiante ${estudiante.nombre} (DNI ${estudiante.dni}) fue dado de baja de la matrícula a partir del ${fechaFormateada} y ya no cursa Educación Física en ${curso}. Sus asistencias quedan registradas hasta la fecha de baja.`,
+            tipo: 'estudiante_baja',
+            fechaCreacion: new Date().toISOString(),
+            leidaPor: []
+          };
+          try {
+            await setDoc(doc(db, "notificaciones", notifId), notifObj);
+            setNotificaciones((prev) => [notifObj, ...prev]);
+          } catch (error) {
+            console.error("Error al crear notificación de baja en Firebase:", error);
+            // Fallback
+            setNotificaciones((prev) => [notifObj, ...prev]);
+          }
+        }
+      }
+      return;
+    }
+
+    // Sin fecha de baja: eliminación definitiva del registro
     try {
       await deleteDoc(doc(db, "alumnos", estudianteDni));
       setAlumnos(prev => prev.filter(a => a.dni !== estudianteDni));
@@ -415,39 +474,6 @@ export const SchoolDataProvider = ({ children }) => {
       console.error("Error al eliminar estudiante en Firebase:", error);
       // Fallback
       setAlumnos(prev => prev.filter(a => a.dni !== estudianteDni));
-    }
-
-    // Notificación de baja para el/los docente(s) de los cursos de EF afectados
-    if (estudiante && !estudiante.noCursaEF) {
-      const cursosAfectados = [];
-      if (estudiante.cursoEF && estudiante.cursoEF !== 'No cursa') {
-        cursosAfectados.push(estudiante.cursoEF);
-      }
-      (estudiante.recursaCursos || []).forEach(c => {
-        if (!cursosAfectados.includes(c)) cursosAfectados.push(c);
-      });
-
-      const fechaFormateada = new Date().toLocaleDateString('es-AR');
-      for (const curso of cursosAfectados) {
-        const notifId = `notif_${Date.now()}_${curso.replace(/[^0-9]/g, '')}`;
-        const notifObj = {
-          id: notifId,
-          curso,
-          fecha: new Date().toISOString().split('T')[0],
-          mensaje: `El estudiante ${estudiante.nombre} (DNI ${estudiante.dni}) fue dado de baja de la matrícula y ya no cursa Educación Física en ${curso}.`,
-          tipo: 'estudiante_baja',
-          fechaCreacion: new Date().toISOString(),
-          leidaPor: []
-        };
-        try {
-          await setDoc(doc(db, "notificaciones", notifId), notifObj);
-          setNotificaciones((prev) => [notifObj, ...prev]);
-        } catch (error) {
-          console.error("Error al crear notificación de baja en Firebase:", error);
-          // Fallback
-          setNotificaciones((prev) => [notifObj, ...prev]);
-        }
-      }
     }
   };
 
