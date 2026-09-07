@@ -7,6 +7,7 @@ import PreceptorDashboard from './components/PreceptorDashboard';
 import DocenteDashboard from './components/DocenteDashboard';
 import ReportesTab from './components/ReportesTab';
 import Dashboard from './components/Dashboard';
+import DocenteModalesEntrada from './components/DocenteModalesEntrada';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import { Menu, CalendarCheck } from 'lucide-react';
@@ -169,6 +170,16 @@ const AppContent = () => {
             <CalendarCheck size={20} className="relative" />
             <span className="relative">Cargar Parte</span>
           </button>
+        )}
+
+        {/* Modales de entrada para Docentes (normativa + partes pendientes) */}
+        {isAuthenticated && user && user.rol === 'Docente' && currentPath !== '/login' && (
+          <DocenteModalesEntrada
+            onDocenteNav={(tab) => {
+              handleNavigate('/asistencia');
+              setDocenteTab(tab);
+            }}
+          />
         )}
       </div>
     </div>

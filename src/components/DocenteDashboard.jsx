@@ -1,15 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useSchoolData } from '../context/SchoolDataContext';
 import DocenteAsistencia from './DocenteAsistencia';
 import DocenteLibroTemas from './DocenteLibroTemas';
 import DocenteInformes from './DocenteInformes';
 import DocentePlanilla from './DocentePlanilla';
-import { CalendarCheck, BookOpen, AlertCircle, Award, AlertOctagon, Bell, X, Calendar, LayoutDashboard } from 'lucide-react';
+import { CalendarCheck, BookOpen, AlertCircle, Award, Calendar, LayoutDashboard } from 'lucide-react';
 
 const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiveTab }) => {
   const { user } = useAuth();
-  const { solicitudesFaltantes = [], cursosConfig = {} } = useSchoolData();
   
   const [localActiveTab, setLocalActiveTab] = useState(() => {
     return user.rol === "Equipo de Conducción" ? 'dashboard' : 'dashboard';
@@ -18,30 +16,7 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
   const activeTab = propActiveTab !== undefined ? propActiveTab : localActiveTab;
   const setActiveTab = propSetActiveTab !== undefined ? propSetActiveTab : setLocalActiveTab;
 
-  const [showPendingModal, setShowPendingModal] = useState(false);
-
   const esDirectivo = user.rol === "Equipo de Conducción";
-
-  // Computar cursos asignados dinámicamente
-  const cursosAsignados = useMemo(() => {
-    return Object.keys(cursosConfig).filter(
-      (curso) => cursosConfig[curso].docenteDni === user.dni
-    );
-  }, [cursosConfig, user.dni]);
-
-  // Filtrar solicitudes de partes faltantes pendientes para este docente
-  const notificacionesFaltantes = useMemo(() => {
-    return solicitudesFaltantes.filter(
-      sol => cursosAsignados.includes(sol.curso) && !sol.completada
-    );
-  }, [solicitudesFaltantes, cursosAsignados]);
-
-  // Mostrar modal de advertencia al inicio si hay partes faltantes
-  useEffect(() => {
-    if (user.rol === "Docente" && notificacionesFaltantes.length > 0) {
-      setShowPendingModal(true);
-    }
-  }, [notificacionesFaltantes.length, user.rol]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
@@ -194,75 +169,6 @@ const DocenteDashboard = ({ activeTab: propActiveTab, setActiveTab: propSetActiv
         {activeTab === 'planilla-mensual' && <DocentePlanilla />}
         {activeTab === 'mis-informes' && <DocenteInformes />}
       </div>
-
-      {/* VENTANA EMERGENTE: AVISO DE REPORTES PENDIENTES */}
-      {showPendingModal && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl border border-red-200 shadow-2xl max-w-md w-full p-6 relative overflow-hidden animate-zoom-in text-center">
-            {/* Glowing background glow */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl -mr-6 -mt-6"></div>
-            
-            <button
-              type="button"
-              onClick={() => setShowPendingModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 bg-slate-50 hover:bg-slate-100 p-1.5 rounded-full border border-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
-            >
-              <X size={14} />
-            </button>
-
-            {/* Warning Icon animated */}
-            <div className="mx-auto w-14 h-14 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-550 mb-4 shadow-sm animate-pulse">
-              <AlertOctagon className="text-red-500" size={26} />
-            </div>
-
-            <h3 className="text-lg font-bold text-red-800 font-display">
-              ¡Tiene Reportes Pendientes!
-            </h3>
-            <p className="text-xs text-slate-550 text-slate-600 mt-2 leading-relaxed font-semibold">
-              Se han detectado <strong className="text-red-600 font-extrabold">{notificacionesFaltantes.length}</strong> solicitudes de partes diarios requeridos por la preceptora o la dirección escolar.
-            </p>
-
-            {/* Listado de Solicitudes */}
-            <div className="my-4 bg-slate-50 border border-slate-200 rounded-2xl p-3 max-h-36 overflow-y-auto text-left text-xs font-semibold space-y-1.5 text-slate-700 shadow-inner">
-              <span className="block text-[9px] uppercase tracking-wider text-slate-400 font-extrabold mb-1">Listado de partes solicitados:</span>
-              {notificacionesFaltantes.map(sol => (
-                <div key={sol.id} className="border-b border-slate-100 pb-1.5 last:border-0 last:pb-0 space-y-0.5">
-                  <div className="flex justify-between">
-                    <span className="text-slate-800 font-bold">Curso {sol.curso}</span>
-                    <span className="font-mono text-primary-500">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</span>
-                  </div>
-                  {sol.comentario && (
-                    <p className="text-[10px] text-slate-500 italic font-medium ml-2 bg-white/50 px-2 py-0.5 rounded border border-slate-150">
-                      <strong>Nota preceptor:</strong> {sol.comentario}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Botonera Premium */}
-            <div className="grid grid-cols-2 gap-3 mt-5">
-              <button
-                type="button"
-                onClick={() => setShowPendingModal(false)}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2.5 px-4 rounded-xl border border-slate-200 transition-all cursor-pointer active:scale-95"
-              >
-                Cerrar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPendingModal(false);
-                  setActiveTab('asistencia');
-                }}
-                className="w-full bg-red-500 hover:bg-red-650 hover:bg-red-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer active:scale-95 uppercase tracking-wide"
-              >
-                Ver y Confeccionar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
