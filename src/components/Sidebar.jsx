@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   LogOut, Shield, GraduationCap, Calendar, User, Clock, 
   CalendarCheck, BookOpen, AlertCircle, LayoutDashboard, 
-  Users, UserPlus, Menu, X, Upload
+  Users, UserPlus, Menu, X, Upload, TrendingUp
 } from 'lucide-react';
 
 const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docenteTab, setDocenteTab }) => {
@@ -93,7 +93,7 @@ const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docen
           {user.rol === "Equipo de Conducción" && (
             <>
               <Section title="Inicio">
-                <NavItem icon={LayoutDashboard} label="Dashboard General" isActive={currentPath === '/admin'} onClick={() => handleNav('/admin')} />
+                <NavItem icon={LayoutDashboard} label="Panel de Inicio" isActive={currentPath === '/dashboard'} onClick={() => handleNav('/dashboard')} />
               </Section>
               
               <Section title="Usuarios y Personal">
@@ -119,6 +119,7 @@ const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docen
 
               <Section title="Supervisión">
                 <NavItem icon={Calendar} label="Asistencia Mensual" isActive={currentPath === '/asistencia-mensual'} onClick={() => handleNav('/asistencia-mensual')} />
+                <NavItem icon={TrendingUp} label="Reportes de Asistencia" isActive={currentPath === '/reportes'} onClick={() => handleNav('/reportes')} />
                 <NavItem icon={Shield} label="Libro de Temas (Visar)" isActive={currentPath === '/asistencia'} onClick={() => handleNav('/asistencia')} />
               </Section>
             </>
@@ -127,12 +128,16 @@ const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docen
           {/* MENU PARA PRECEPTOR */}
           {user.rol === "Preceptor" && (
             <>
+              <Section title="Inicio">
+                <NavItem icon={LayoutDashboard} label="Panel de Inicio" isActive={currentPath === '/dashboard'} onClick={() => handleNav('/dashboard')} />
+              </Section>
               <Section title="Estudiantes">
                 <NavItem icon={GraduationCap} label="Matricular Estudiante" isActive={currentPath === '/admin/estudiantes_carga'} onClick={() => handleNav('/admin/estudiantes_carga')} />
                 <NavItem icon={BookOpen} label="Listado de Estudiantes" isActive={currentPath === '/admin/estudiantes_lista'} onClick={() => handleNav('/admin/estudiantes_lista')} />
               </Section>
               <Section title="Asistencia">
                 <NavItem icon={Calendar} label="Asistencia Mensual" isActive={currentPath === '/asistencia-mensual'} onClick={() => handleNav('/asistencia-mensual')} />
+                <NavItem icon={TrendingUp} label="Reportes de Asistencia" isActive={currentPath === '/reportes'} onClick={() => handleNav('/reportes')} />
               </Section>
             </>
           )}
@@ -141,10 +146,11 @@ const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docen
           {user.rol === "Docente" && (
             <>
               <Section title="Mi Panel">
-                <NavItem icon={LayoutDashboard} label="Inicio" isActive={currentPath === '/asistencia' && docenteTab === 'dashboard'} onClick={() => handleDocenteNav('dashboard')} />
+                <NavItem icon={LayoutDashboard} label="Inicio" isActive={currentPath === '/dashboard'} onClick={() => handleNav('/dashboard')} />
                 <NavItem icon={CalendarCheck} label="Crear Parte Diario" isActive={currentPath === '/asistencia' && docenteTab === 'asistencia'} onClick={() => handleDocenteNav('asistencia')} />
                 <NavItem icon={BookOpen} label="Libro de Temas" isActive={currentPath === '/asistencia' && docenteTab === 'libro-de-temas'} onClick={() => handleDocenteNav('libro-de-temas')} />
                 <NavItem icon={Calendar} label="Asistencia Mensual" isActive={currentPath === '/asistencia' && docenteTab === 'planilla-mensual'} onClick={() => handleDocenteNav('planilla-mensual')} />
+                <NavItem icon={TrendingUp} label="Reportes de Asistencia" isActive={currentPath === '/reportes'} onClick={() => handleNav('/reportes')} />
                 <NavItem icon={AlertCircle} label="Mis Informes" isActive={currentPath === '/asistencia' && docenteTab === 'mis-informes'} onClick={() => handleDocenteNav('mis-informes')} />
               </Section>
             </>

@@ -5,9 +5,11 @@ import Login from './components/Login';
 import AdminPanel from './components/AdminPanel';
 import PreceptorDashboard from './components/PreceptorDashboard';
 import DocenteDashboard from './components/DocenteDashboard';
+import ReportesTab from './components/ReportesTab';
+import Dashboard from './components/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
-import { Menu } from 'lucide-react';
+import { Menu, CalendarCheck } from 'lucide-react';
 
 // Removing TopNavigation and BottomNavbar in favor of Sidebar
 
@@ -57,9 +59,7 @@ const AppContent = () => {
     if (!isAuthenticated) {
       handleNavigate('/login');
     } else if (currentPath === '/login') {
-      if (user.rol === "Equipo de Conducción") handleNavigate('/admin');
-      else if (user.rol === "Preceptor") handleNavigate('/asistencia-mensual');
-      else if (user.rol === "Docente") handleNavigate('/asistencia');
+      handleNavigate('/dashboard');
     }
   }, [isAuthenticated, user, currentPath]);
 
@@ -77,8 +77,8 @@ const AppContent = () => {
         />
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+{/* Main Content Area */}
+        <div className="flex-1 flex flex-col h-screen overflow-hidden">
         
         {/* Mobile Header */}
         {isAuthenticated && user && currentPath !== '/login' && (
@@ -132,7 +132,44 @@ const AppContent = () => {
               <DocenteDashboard activeTab={docenteTab} setActiveTab={setDocenteTab} />
             </ProtectedRoute>
           )}
+
+          {currentPath === '/reportes' && (
+            <ProtectedRoute
+              allowedRoles={['Equipo de Conducción', 'Preceptor', 'Docente']}
+              currentPath="/reportes"
+              onNavigate={handleNavigate}
+            >
+              <ReportesTab />
+            </ProtectedRoute>
+          )}
+
+          {currentPath === '/dashboard' && (
+            <ProtectedRoute
+              allowedRoles={['Equipo de Conducción', 'Preceptor', 'Docente']}
+              currentPath="/dashboard"
+              onNavigate={handleNavigate}
+            >
+              <Dashboard onNavigate={handleNavigate} onDocenteNav={(tab) => { handleNavigate('/asistencia'); setDocenteTab(tab); }} />
+            </ProtectedRoute>
+          )}
         </main>
+
+        {/* Burbuja flotante para Docentes: acceso directo a Cargar Parte */}
+        {isAuthenticated && user && user.rol === 'Docente' && currentPath !== '/login' && (
+          <button
+            type="button"
+            title="Cargar Parte"
+            onClick={() => {
+              handleNavigate('/asistencia');
+              setDocenteTab('asistencia');
+            }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold text-sm pl-4 pr-5 py-3 rounded-full shadow-xl shadow-primary-500/30 hover:scale-105 active:scale-95 transition-all"
+          >
+            <span className="absolute inset-0 rounded-full bg-primary-500/50 animate-ping opacity-40"></span>
+            <CalendarCheck size={20} className="relative" />
+            <span className="relative">Cargar Parte</span>
+          </button>
+        )}
       </div>
     </div>
   );

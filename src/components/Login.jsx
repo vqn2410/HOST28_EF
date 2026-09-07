@@ -23,13 +23,7 @@ const Login = ({ onNavigate }) => {
       const res = login(dni, password);
       setIsLoading(false);
       if (res.success) {
-        if (res.user.rol === "Equipo de Conducción") {
-          onNavigate('/admin');
-        } else if (res.user.rol === "Preceptor") {
-          onNavigate('/asistencia-mensual');
-        } else if (res.user.rol === "Docente") {
-          onNavigate('/asistencia');
-        }
+        onNavigate('/dashboard');
       } else {
         setError(res.message);
       }

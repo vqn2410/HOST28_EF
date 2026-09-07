@@ -1,6 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
-import { BarChart3, TrendingUp, Users, CalendarRange, Download, Award, AlertCircle, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { BarChart3, TrendingUp, CalendarRange, Download, Award, AlertCircle } from 'lucide-react';
+
+const DEFAULT_CURSOS = [
+  '1°1°', '1°2°', '1°3°',
+  '2°1°', '2°2°', '2°3°',
+  '3°1°', '3°2°',
+  '4°1°', '4°2°',
+  '5°1°', '5°2°',
+  '6°1°', '6°2°'
+];
 
 const esFechaNoLectiva = (fecha, feriados) => feriados.some((feriado) =>
   feriado.fecha === fecha ||
@@ -155,8 +165,24 @@ const BarChartCursos = ({ data }) => (
   </div>
 );
 
-const ReportesTab = ({ cursos = [] }) => {
+const ReportesTab = ({ cursos: cursosProp = [] }) => {
   const { alumnos, partes, cursosConfig, feriados = [] } = useSchoolData();
+  const { user } = useAuth();
+
+  // Cursos según el rol del usuario (si no se pasa la lista como prop)
+  const cursos = useMemo(() => {
+    if (cursosProp.length > 0) return cursosProp;
+    if (!user) return [];
+    if (user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0) {
+      return user.cursosAsignados;
+    }
+    if (user.rol === "Docente") {
+      return Object.keys(cursosConfig).filter(
+        curso => cursosConfig[curso].docenteDni === user.dni
+      );
+    }
+    return DEFAULT_CURSOS;
+  }, [cursosProp, user, cursosConfig]);
 
   const [selectedCurso, setSelectedCurso] = useState(() => cursos[0] || "");
   const [selectedMesComparativo, setSelectedMesComparativo] = useState(() => {

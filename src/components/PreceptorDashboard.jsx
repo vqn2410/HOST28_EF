@@ -48,6 +48,11 @@ const PreceptorDashboard = () => {
   });
   const [solFecha, setSolFecha] = useState('');
   const [solComentario, setSolComentario] = useState('');
+  const [solMes, setSolMes] = useState(() => {
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    const mesesEscolares = ["02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+    return mesesEscolares.includes(currentMonth) ? currentMonth : "05";
+  });
   const [solError, setSolError] = useState('');
   const [solSuccess, setSolSuccess] = useState('');
 
@@ -327,10 +332,10 @@ const PreceptorDashboard = () => {
     return config ? config.dias : (solCurso.endsWith('1°') ? [2, 4] : [1, 3]);
   }, [cursosConfig, solCurso]);
 
-  // Calcular fechas de clase del mes para el curso seleccionado que NO tienen parte registrado ni solicitudes pendientes
+  // Calcular fechas de clase del mes seleccionado para el curso elegido que NO tienen parte registrado ni solicitudes pendientes
   const fechasSinCompletar = useMemo(() => {
     const year = 2026;
-    const monthIndex = parseInt(selectedMes) - 1;
+    const monthIndex = parseInt(solMes) - 1;
     const date = new Date(year, monthIndex, 1);
     const faltantes = [];
 
@@ -339,7 +344,7 @@ const PreceptorDashboard = () => {
     while (date.getMonth() === monthIndex) {
       const dayOfWeek = date.getDay();
       const dayNum = String(date.getDate()).padStart(2, '0');
-      const formattedDate = `${year}-${selectedMes}-${dayNum}`;
+      const formattedDate = `${year}-${solMes}-${dayNum}`;
       if (solCursoDiasSemana.includes(dayOfWeek) && !esFechaNoLectiva(formattedDate, feriados)) {
 
         // Solo sugerir fechas pasadas o del día de hoy
@@ -357,7 +362,7 @@ const PreceptorDashboard = () => {
       date.setDate(date.getDate() + 1);
     }
     return faltantes;
-  }, [selectedMes, solCurso, solCursoDiasSemana, partes, solicitudesFaltantes, feriados]);
+  }, [solMes, solCurso, solCursoDiasSemana, partes, solicitudesFaltantes, feriados]);
 
   // Calcular estadísticas acumuladas por alumno en su respectivo curso de EF
   const calcularEstadisticasAlumnoReasignado = (alumno) => {
@@ -500,6 +505,29 @@ const PreceptorDashboard = () => {
 
     agregarSolicitudParteFaltante(solCurso, solFecha, `${user.nombre} ${user.apellido}`, user.rol, solComentario);
     setSolSuccess(`¡Solicitud enviada con éxito al docente del curso ${solCurso}!`);
+    setSolFecha('');
+    setSolComentario('');
+
+    setTimeout(() => {
+      setSolSuccess('');
+    }, 4500);
+  };
+
+  // Solicitar todos los partes faltantes del mes y curso seleccionados
+  const handleSolicitarTodosFaltantes = () => {
+    setSolError('');
+    setSolSuccess('');
+
+    if (fechasSinCompletar.length === 0) {
+      setSolError('No hay días sin completar para solicitar en este mes y curso.');
+      return;
+    }
+
+    fechasSinCompletar.forEach(fecha => {
+      agregarSolicitudParteFaltante(solCurso, fecha, `${user.nombre} ${user.apellido}`, user.rol, solComentario);
+    });
+
+    setSolSuccess(`¡Se solicitaron ${fechasSinCompletar.length} partes faltantes al docente del curso ${solCurso} (${MESES.find(m => m.value === solMes)?.label || solMes})!`);
     setSolFecha('');
     setSolComentario('');
 
@@ -1169,9 +1197,27 @@ const PreceptorDashboard = () => {
                   </div>
 
                   <div>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Mes de Consulta</label>
+                    <select
+                      value={solMes}
+                      onChange={e => {
+                        setSolMes(e.target.value);
+                        setSolFecha('');
+                      }}
+                      className="w-full bg-white border border-slate-300 focus:border-primary-500 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none font-extrabold cursor-pointer"
+                    >
+                      {MESES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                    <p className="text-[9px] text-slate-400 font-semibold mt-1">
+                      Permite solicitar partes faltantes de meses anteriores.
+                    </p>
+                  </div>
+
+                  <div>
                     <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Fecha Faltante</label>
                     <input
                       type="date"
+                      min={`2026-${solMes}-01`}
                       max={new Date().toISOString().split('T')[0]}
                       value={solFecha}
                       onChange={e => setSolFecha(e.target.value)}
@@ -1207,6 +1253,16 @@ const PreceptorDashboard = () => {
                       )}
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSolicitarTodosFaltantes}
+                    disabled={fechasSinCompletar.length === 0}
+                    className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white text-[10px] font-bold py-3 px-4 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans flex items-center justify-center gap-2"
+                  >
+                    <Plus size={14} />
+                    Solicitar todos los faltantes ({fechasSinCompletar.length})
+                  </button>
 
                   <div>
                     <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1.5">Motivo / Notas de la Solicitud (Opcional)</label>

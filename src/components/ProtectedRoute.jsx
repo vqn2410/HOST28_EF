@@ -49,11 +49,7 @@ const ProtectedRoute = ({ allowedRoles, children, currentPath, onNavigate }) => 
           </div>
 
           <button
-            onClick={() => {
-              if (user.rol === "Equipo de Conducción") onNavigate('/admin');
-              else if (user.rol === "Preceptor") onNavigate('/asistencia-mensual');
-              else if (user.rol === "Docente") onNavigate('/asistencia');
-            }}
+            onClick={() => onNavigate('/dashboard')}
             className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2.5 px-4 rounded-xl transition-all duration-300 border border-slate-700"
           >
             <ArrowLeft size={16} />
