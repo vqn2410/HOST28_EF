@@ -387,27 +387,27 @@ const DocenteLibroTemas = () => {
           </div>
 
           {/* Encabezado del Folio adaptado a E.E.S N° 28 - "Gustavo Cerati" */}
-          <table className="w-full border-collapse border border-slate-900 text-[10px] font-sans text-slate-900">
+          <table className="w-full border-collapse border border-slate-900 text-[10px] font-sans text-slate-900 table-stack">
             <tbody>
               <tr>
-                <td className="border border-slate-900 p-2 w-[25%]">
+                <td data-label="Asignatura" className="border border-slate-900 p-2 w-[25%]">
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Asignatura:</span>
                   <span className="font-extrabold text-[10px] text-slate-950">Educación Física</span>
                 </td>
-                <td className="border border-slate-900 p-2 w-[15%]">
+                <td data-label="Curso" className="border border-slate-900 p-2 w-[15%]">
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Curso:</span>
                   <span className="font-extrabold text-[10px] text-slate-950">{selectedCurso}</span>
                 </td>
-                <td className="border border-slate-900 p-2 w-[15%]">
+                <td data-label="Turno" className="border border-slate-900 p-2 w-[15%]">
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Turno:</span>
                   <span className="font-extrabold text-[10px] text-slate-950">{headerInfo.turno}</span>
                 </td>
-                <td className="border border-slate-900 p-0 w-[45%]" rowSpan={3} style={{ height: '1px' }}>
+                <td data-label="Días y Horarios" className="border border-slate-900 p-0 w-[45%]" rowSpan={3} style={{ height: '1px' }}>
                   <div className="flex flex-col h-full justify-start">
                     <span className="font-extrabold block text-[9px] text-slate-950 uppercase px-2 py-2 bg-slate-50 border-b border-slate-900 tracking-wider text-center">
                       Días y Horarios:
                     </span>
-                    <table className="w-full flex-1 text-center text-[9px] border-collapse h-full">
+                    <table className="w-full flex-1 text-center text-[9px] border-collapse h-full table-stack">
                       <thead>
                         <tr className="border-b border-slate-900 bg-slate-50 text-[8px] font-bold text-slate-600 uppercase">
                           <th className="border-r border-slate-900 py-1 font-sans w-1/5">Lunes</th>
@@ -419,11 +419,11 @@ const DocenteLibroTemas = () => {
                       </thead>
                       <tbody className="h-full">
                         <tr className="font-mono text-slate-900 font-bold text-[8px] h-full">
-                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[1]}</td>
-                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[2]}</td>
-                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[3]}</td>
-                          <td className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[4]}</td>
-                          <td className="py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[5]}</td>
+                          <td data-label="Lunes" className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[1]}</td>
+                          <td data-label="Martes" className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[2]}</td>
+                          <td data-label="Miércoles" className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[3]}</td>
+                          <td data-label="Jueves" className="border-r border-slate-900 py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[4]}</td>
+                          <td data-label="Viernes" className="py-2 px-0.5 whitespace-nowrap align-top bg-white">{scheduleByDay[5]}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -431,13 +431,13 @@ const DocenteLibroTemas = () => {
                 </td>
               </tr>
               <tr>
-                <td className="border border-slate-900 p-2" colSpan={3}>
+                <td data-label="Preceptor" className="border border-slate-900 p-2" colSpan={3}>
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Preceptor:</span>
                   <span className="font-extrabold text-[10px] text-slate-950">{headerInfo.preceptor}</span>
                 </td>
               </tr>
               <tr>
-                <td className="border border-slate-900 p-2" colSpan={3}>
+                <td data-label="Docente a Cargo" className="border border-slate-900 p-2" colSpan={3}>
                   <span className="font-bold block text-[8px] text-slate-500 uppercase">Docente a Cargo (Situación de Revista):</span>
                   <span className="font-extrabold text-[10px] text-slate-950">Prof. {headerInfo.profesor} ({headerInfo.situacion})</span>
                 </td>
@@ -453,7 +453,7 @@ const DocenteLibroTemas = () => {
               <p className="text-slate-450 text-slate-500 text-xs mt-1">Los docentes deben firmar un parte diario en esta sección para poblar el libro.</p>
             </div>
           ) : (
-            <table className="w-full border-collapse border border-slate-900 text-[10px] font-sans text-slate-900">
+            <table className="w-full border-collapse border border-slate-900 text-[10px] font-sans text-slate-900 table-stack">
               <thead>
                 <tr className="bg-slate-100 text-center font-bold text-[9px] border-b border-slate-900 uppercase">
                   <th className="border border-slate-900 py-2.5 px-1.5 w-[4%]">Día</th>
@@ -481,34 +481,34 @@ const DocenteLibroTemas = () => {
                         : "hover:bg-slate-50"
                         }`}
                     >
-                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
+                      <td data-label="Día" className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
                         {parte.dia || parte.fecha.split('-')[2]}
                       </td>
-                      <td className="border border-slate-900 py-3 px-1 text-center font-bold text-slate-900">
+                      <td data-label="Mes" className="border border-slate-900 py-3 px-1 text-center font-bold text-slate-900">
                         {parte.mes || 'Mayo'}
                       </td>
-                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
+                      <td data-label="Año" className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-[10px] text-slate-950">
                         {parte.fecha ? parte.fecha.split('-')[0] : '2026'}
                       </td>
-                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
+                      <td data-label="Clase N°" className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
                         {parte.claseNum || '1'}
                       </td>
-                      <td className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
+                      <td data-label="Unidad" className="border border-slate-900 py-3 px-1 text-center font-mono font-bold text-slate-900">
                         {parte.unidad || 'I'}
                       </td>
-                      <td className="border border-slate-900 py-3 px-2 text-center text-[9px] font-bold text-slate-700">
+                      <td data-label="Carácter" className="border border-slate-900 py-3 px-2 text-center text-[9px] font-bold text-slate-700">
                         {parte.caracter || 'Práctica'}
                       </td>
-                      <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-950 text-[10px] font-sans font-bold">
+                      <td data-label="Tema Abordado" className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-950 text-[10px] font-sans font-bold">
                         {parte.contenido}
                       </td>
-                      <td className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-850 text-[10px] font-sans font-semibold">
+                      <td data-label="Actividades" className="border border-slate-900 py-3 px-3 text-left leading-relaxed text-slate-850 text-[10px] font-sans font-semibold">
                         {parte.actividades || '-'}
                       </td>
-                      <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-800 font-bold leading-normal">
+                      <td data-label="Dinámica" className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-800 font-bold leading-normal">
                         {parte.dinamica || 'Grupal'}
                       </td>
-                      <td className="border border-slate-900 py-1.5 px-1 text-center">
+                      <td data-label="Firma del Profesor" className="border border-slate-900 py-1.5 px-1 text-center">
                         {parte.firmaDigital ? (
                           <div className="bg-accent-50 border border-accent-300 rounded p-1 text-[7px] font-mono text-accent-850 font-bold leading-tight">
                             <span className="block font-black text-accent-700 mb-0.5">VERIFICADA ✔</span>
@@ -524,10 +524,10 @@ const DocenteLibroTemas = () => {
                           </span>
                         )}
                       </td>
-                      <td className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-700 font-bold leading-normal italic">
+                      <td data-label="Observaciones" className="border border-slate-900 py-3 px-2 text-left text-[9px] text-slate-700 font-bold leading-normal italic">
                         {parte.observaciones || 'Sin observaciones.'}
                       </td>
-                      <td className="border border-slate-900 py-1.5 px-1 text-center">
+                      <td data-label="Firma Autoridad" className="border border-slate-900 py-1.5 px-1 text-center">
                         {parte.firmaAutoridad ? (
                           <div className="bg-primary-50 border border-primary-200 rounded p-1 text-[7px] font-mono text-primary-850 font-bold leading-tight">
                             <span className="block font-black text-primary-700 mb-0.5">APROBADO ✔</span>

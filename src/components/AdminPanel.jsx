@@ -1613,7 +1613,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
               <span className="text-[10px] text-slate-500 uppercase bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md font-bold">Vite Live State</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-xs table-stack">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-600 font-bold bg-slate-50">
                     <th className="py-2.5 px-3">Apellido, Nombre</th>
@@ -1626,10 +1626,10 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                 <tbody className="divide-y divide-slate-100">
                   {usuariosOrdenados.map((u, i) => (
                     <tr key={i} className="hover:bg-slate-50 text-slate-700">
-                      <td className="py-2.5 px-3 font-semibold text-slate-800">{u.apellido}, {u.nombre}</td>
-                      <td className="py-2.5 px-3 font-mono text-slate-500">{u.dni}</td>
-                      <td className="py-2.5 px-3 font-mono text-slate-500">{u.correo}</td>
-                      <td className="py-2.5 px-3 text-right">
+                      <td data-label="Apellido, Nombre" className="py-2.5 px-3 font-semibold text-slate-800">{u.apellido}, {u.nombre}</td>
+                      <td data-label="DNI" className="py-2.5 px-3 font-mono text-slate-500">{u.dni}</td>
+                      <td data-label="Correo" className="py-2.5 px-3 font-mono text-slate-500">{u.correo}</td>
+                      <td data-label="Rol" className="py-2.5 px-3 text-right">
                         <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                           u.rol === "Equipo de Conducción" ? "bg-red-50 text-red-750 border border-red-200" :
                           u.rol === "Preceptor" ? "bg-primary-50 text-primary-705 border border-primary-200" :
@@ -1643,7 +1643,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                           </div>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-center">
+                      <td data-label="Acciones" className="py-2.5 px-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => {
@@ -2011,7 +2011,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-xs table-stack">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-600 font-bold bg-slate-50">
                     <th className="py-2.5 px-3">Apellido, Nombre</th>
@@ -2025,11 +2025,11 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                 <tbody className="divide-y divide-slate-100">
                   {alumnosFiltradosYOrdenados.map((a, i) => (
                     <tr key={i} className="hover:bg-slate-50 text-slate-700">
-                      <td className="py-2.5 px-3 font-semibold text-slate-800">{a.nombre}</td>
-                      <td className="py-2.5 px-3 font-mono text-slate-500">{a.dni}</td>
-                      <td className="py-2.5 px-3 font-bold text-slate-700">{a.cursoOrigen}</td>
-                      <td className="py-2.5 px-3 text-slate-600">{a.turno}</td>
-                      <td className="py-2.5 px-3 text-right">
+                      <td data-label="Apellido, Nombre" className="py-2.5 px-3 font-semibold text-slate-800">{a.nombre}</td>
+                      <td data-label="DNI" className="py-2.5 px-3 font-mono text-slate-500">{a.dni}</td>
+                      <td data-label="Curso Origen" className="py-2.5 px-3 font-bold text-slate-700">{a.cursoOrigen}</td>
+                      <td data-label="Turno" className="py-2.5 px-3 text-slate-600">{a.turno}</td>
+                      <td data-label="Curso EF" className="py-2.5 px-3 text-right">
                         {a.noCursaEF ? (
                           <span className="inline-block bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[9px] font-bold uppercase">
                             No cursa EF
@@ -2044,7 +2044,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-center">
+                      <td data-label="Acciones" className="py-2.5 px-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => {
@@ -2218,7 +2218,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
               <span className="text-[10px] text-slate-500 uppercase bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md font-bold font-sans">Consola</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-xs table-stack">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-600 font-bold bg-slate-50">
                     <th className="py-2.5 px-3">Curso</th>
@@ -2237,15 +2237,15 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
 
                     return (
                       <tr key={curso} className="hover:bg-slate-50 text-slate-700">
-                        <td className="py-2.5 px-3 font-extrabold text-slate-900">{curso}</td>
-                        <td className="py-2.5 px-3 font-semibold text-primary-600">{c.docenteNombre}</td>
-                        <td className="py-2.5 px-3 font-bold text-slate-600">
+                        <td data-label="Curso" className="py-2.5 px-3 font-extrabold text-slate-900">{curso}</td>
+                        <td data-label="Docente" className="py-2.5 px-3 font-semibold text-primary-600">{c.docenteNombre}</td>
+                        <td data-label="Días de Clase" className="py-2.5 px-3 font-bold text-slate-600">
                           <span className="inline-block bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[10px]">
                             {diasLabel}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono text-slate-500">{c.horario}</td>
-                        <td className="py-2.5 px-3 text-center">
+                        <td data-label="Horario" className="py-2.5 px-3 text-right font-mono text-slate-500">{c.horario}</td>
+                        <td data-label="Acciones" className="py-2.5 px-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => {
@@ -2397,7 +2397,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                     </div>
                   ) : (
                     <div className="overflow-x-auto font-sans">
-                      <table className="w-full text-left border-collapse text-xs">
+                      <table className="w-full text-left border-collapse text-xs table-stack">
                         <thead>
                           <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold uppercase">
                             <th className="py-2.5 px-3">Curso</th>
@@ -2417,23 +2417,23 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                             const cantAusentes  = Object.values(p.asistencia || {}).filter(a => a === 'Ausente').length;
                             return (
                               <tr key={p.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                                <td className="py-2.5 px-3 font-extrabold text-slate-900">{p.curso}</td>
-                                <td className="py-2.5 px-3 font-bold font-mono">{new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
-                                <td className="py-2.5 px-3 text-slate-500">{p.horario}</td>
-                                <td className="py-2.5 px-3 text-center font-bold text-slate-600">{p.claseNum || '-'}</td>
-                                <td className="py-2.5 px-3 text-slate-600 max-w-[130px] truncate" title={p.docenteNombre}>{p.docenteNombre}</td>
-                                <td className="py-2.5 px-3 text-center">
+                                <td data-label="Curso" className="py-2.5 px-3 font-extrabold text-slate-900">{p.curso}</td>
+                                <td data-label="Fecha" className="py-2.5 px-3 font-bold font-mono">{new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+                                <td data-label="Horario" className="py-2.5 px-3 text-slate-500">{p.horario}</td>
+                                <td data-label="Clase N°" className="py-2.5 px-3 text-center font-bold text-slate-600">{p.claseNum || '-'}</td>
+                                <td data-label="Docente" className="py-2.5 px-3 text-slate-600 max-w-[130px] truncate" title={p.docenteNombre}>{p.docenteNombre}</td>
+                                <td data-label="¿Hubo Clase?" className="py-2.5 px-3 text-center">
                                   <span className={`inline-block px-2 py-0.5 rounded-lg border font-bold text-[10px] ${p.huboClase === 'Sí' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                                     {p.huboClase === 'Sí' ? 'Sí' : 'Suspendida'}
                                   </span>
                                 </td>
-                                <td className="py-2.5 px-3 text-center">
+                                <td data-label="Presentes" className="py-2.5 px-3 text-center">
                                   <span className="inline-block bg-accent-50 text-accent-700 px-2 py-0.5 rounded-lg border border-accent-200 font-bold">{cantPresentes}</span>
                                 </td>
-                                <td className="py-2.5 px-3 text-center">
+                                <td data-label="Ausentes" className="py-2.5 px-3 text-center">
                                   <span className="inline-block bg-red-50 text-red-700 px-2 py-0.5 rounded-lg border border-red-200 font-bold">{cantAusentes}</span>
                                 </td>
-                                <td className="py-2.5 px-3 text-right">
+                                <td data-label="Acciones" className="py-2.5 px-3 text-right">
                                   <div className="flex items-center justify-end gap-2">
                                     <button
                                       type="button"
@@ -2642,7 +2642,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                             </div>
                           ) : (
                             <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white shadow-inner">
-                              <table className="w-full text-left border-collapse text-xs">
+                              <table className="w-full text-left border-collapse text-xs table-stack">
                                 <thead>
                                   <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase">
                                     <th className="py-2.5 px-4">Estudiante</th>
@@ -2656,14 +2656,14 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                                     const val = adminParteAsistencia[al.dni] || 'Presente';
                                     return (
                                       <tr key={al.dni} className="hover:bg-slate-50 text-slate-700">
-                                        <td className="py-3 px-4 font-semibold text-slate-800">{al.nombre}</td>
-                                        <td className="py-3 px-3 font-mono text-slate-500">{al.dni}</td>
-                                        <td className="py-3 px-3">
+                                        <td data-label="Estudiante" className="py-3 px-4 font-semibold text-slate-800">{al.nombre}</td>
+                                        <td data-label="DNI" className="py-3 px-3 font-mono text-slate-500">{al.dni}</td>
+                                        <td data-label="Curso Origen" className="py-3 px-3">
                                           {al.cursoOrigen !== adminParteSelectedCurso ? (
                                             <span className="inline-block bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[9px] font-bold">Externo ({al.cursoOrigen})</span>
                                           ) : <span className="text-slate-500">{al.cursoOrigen}</span>}
                                         </td>
-                                        <td className="py-3 px-4">
+                                        <td data-label="Asistencia" className="py-3 px-4">
                                           <div className="flex items-center justify-center gap-2">
                                             <button type="button"
                                               onClick={() => setAdminParteAsistencia(prev => ({ ...prev, [al.dni]: 'Presente' }))}
@@ -3056,7 +3056,7 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
             <h2 className="text-xl font-bold text-slate-900 font-display mb-4">Feriados Cargados</h2>
             {feriados && feriados.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-xs table-stack">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold uppercase">
                       <th className="py-3 px-3">Fecha</th>
@@ -3067,9 +3067,9 @@ const AdminPanel = ({ activeTabOverride, onNavigate }) => {
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {feriados.map(f => (
                       <tr key={f.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{f.tipo === 'RECESO_INVIERNO' ? `${new Date(f.fechaInicio + 'T00:00:00').toLocaleDateString('es-AR')} al ${new Date(f.fechaFin + 'T00:00:00').toLocaleDateString('es-AR')}` : new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
-                        <td className="py-3 px-3">{f.descripcion}</td>
-                        <td className="py-3 px-3 text-right">
+                        <td data-label="Fecha" className="py-3 px-3 font-mono font-bold text-slate-900">{f.tipo === 'RECESO_INVIERNO' ? `${new Date(f.fechaInicio + 'T00:00:00').toLocaleDateString('es-AR')} al ${new Date(f.fechaFin + 'T00:00:00').toLocaleDateString('es-AR')}` : new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+                        <td data-label="Descripción" className="py-3 px-3">{f.descripcion}</td>
+                        <td data-label="Acciones" className="py-3 px-3 text-right">
                           <button onClick={() => eliminarFeriado(f.id)} className="p-1.5 text-red-500 hover:text-red-750 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer" title="Eliminar Feriado"><Trash2 size={14} /></button>
                         </td>
                       </tr>

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSchoolData } from '../context/SchoolDataContext';
-import { Check, X, FileSignature, CheckCircle2, ChevronRight, AlertCircle, AlertOctagon, Bell, Calendar, Edit, Trash2, Clock } from 'lucide-react';
+import { Check, X, FileSignature, CheckCircle2, ChevronRight, ChevronDown, AlertCircle, AlertOctagon, Bell, Calendar, Edit, Trash2, Clock, UserPlus } from 'lucide-react';
+import ModalMatricularEstudiante from './ModalMatricularEstudiante';
 
 const DocenteAsistencia = () => {
   const { user } = useAuth();
@@ -36,6 +37,12 @@ const DocenteAsistencia = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successModalTitle, setSuccessModalTitle] = useState('');
   const [successModalDescription, setSuccessModalDescription] = useState('');
+
+  // Estados para matricular un estudiante desde el parte
+  const [showMatricularModal, setShowMatricularModal] = useState(false);
+
+  // Panel de solicitudes de partes faltantes (contraído por defecto)
+  const [showFaltantesPanel, setShowFaltantesPanel] = useState(false);
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
@@ -483,47 +490,70 @@ const DocenteAsistencia = () => {
         // PANTALLA 1: Listado de Cursos + Solicitudes Faltantes
         <div className="space-y-6">
           
-          {/* Panel de Notificaciones de Solicitudes Faltantes */}
+          {/* Panel de Notificaciones de Solicitudes Faltantes (colapsable) */}
           {notificacionesFaltantes.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-3xl p-5 shadow-sm relative overflow-hidden animate-pulse-once">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl"></div>
-              
-              <div className="flex items-center gap-2 text-red-700 font-bold text-sm uppercase tracking-wider mb-4">
-                <Bell className="animate-bounce" size={16} />
-                <span>Solicitudes de Partes Faltantes Pendientes</span>
-              </div>
-              
-              <div className="space-y-3">
-                {notificacionesFaltantes.map((sol) => (
-                  <div 
-                    key={sol.id} 
-                    className="bg-white border border-red-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
-                  >
-                    <div>
-                      <span className="inline-block bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-red-200">
-                        FALTA PARTE DIARIO
-                      </span>
-                      <div className="mt-1.5 text-xs text-slate-800 font-bold">
-                        Curso: {sol.curso} EF • Fecha Requerida: <span className="font-mono text-primary-500">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">
-                        Solicitado por: <strong>{sol.solicitanteNombre} ({sol.solicitanteRol})</strong> el {new Date(sol.fechaSolicitud).toLocaleDateString()}
-                      </div>
-                      {sol.comentario && (
-                        <div className="text-[10px] text-slate-650 bg-slate-50 border border-slate-200 p-2 rounded-xl mt-2 font-semibold text-left">
-                          <strong>Comentario preceptor:</strong> {sol.comentario}
-                        </div>
-                      )}
-                    </div>
+            <div className="bg-red-50 border border-red-200 rounded-3xl shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl pointer-events-none"></div>
 
-                    <button
-                      onClick={() => handleSelectCurso(sol.curso, sol.fecha)}
-                      className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer self-start sm:self-center shrink-0"
-                    >
-                      Confeccionar Parte Faltante
-                    </button>
+              {/* Encabezado colapsable */}
+              <button
+                type="button"
+                onClick={() => setShowFaltantesPanel(prev => !prev)}
+                className="w-full flex items-center justify-between gap-3 p-4 sm:p-5 cursor-pointer text-left transition-colors bg-transparent"
+                aria-expanded={showFaltantesPanel}
+              >
+                <div className="flex items-center gap-2.5 text-red-700 font-bold text-sm uppercase tracking-wider">
+                  <Bell className="animate-bounce shrink-0" size={16} />
+                  <span>Solicitudes de Partes Faltantes Pendientes</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-full bg-red-600 text-white text-xs font-extrabold shadow-sm">
+                    {notificacionesFaltantes.length}
+                  </span>
+                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full bg-white border border-red-200 text-red-600 transition-transform duration-300 ${showFaltantesPanel ? 'rotate-180' : ''}`}>
+                    <ChevronDown size={15} />
+                  </span>
+                </div>
+              </button>
+
+              {/* Detalle desplegable */}
+              <div className={`grid transition-all duration-300 ease-in-out ${showFaltantesPanel ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}>
+                <div className="overflow-hidden">
+                  <div className="px-4 sm:px-5 pb-5 pt-1 space-y-3">
+                    <div className="space-y-3">
+                      {notificacionesFaltantes.map((sol) => (
+                        <div
+                          key={sol.id}
+                          className="bg-white border border-red-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                        >
+                          <div>
+                            <span className="inline-block bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-red-200">
+                              FALTA PARTE DIARIO
+                            </span>
+                            <div className="mt-1.5 text-xs text-slate-800 font-bold">
+                              Curso: {sol.curso} EF • Fecha Requerida: <span className="font-mono text-primary-500">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">
+                              Solicitado por: <strong>{sol.solicitanteNombre} ({sol.solicitanteRol})</strong> el {new Date(sol.fechaSolicitud).toLocaleDateString()}
+                            </div>
+                            {sol.comentario && (
+                              <div className="text-[10px] text-slate-650 bg-slate-50 border border-slate-200 p-2 rounded-xl mt-2 font-semibold text-left">
+                                <strong>Comentario preceptor:</strong> {sol.comentario}
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => handleSelectCurso(sol.curso, sol.fecha)}
+                            className="bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer self-start sm:self-center shrink-0"
+                          >
+                            Confeccionar Parte Faltante
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           )}
@@ -618,7 +648,7 @@ const DocenteAsistencia = () => {
               </div>
             ) : (
               <div className="overflow-x-auto font-sans">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-xs table-stack">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold uppercase">
                       <th className="py-3 px-3">Curso</th>
@@ -638,24 +668,24 @@ const DocenteAsistencia = () => {
                       
                       return (
                         <tr key={p.id} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                          <td className="py-3 px-3 font-extrabold text-slate-900">{p.curso}</td>
-                          <td className="py-3 px-3 font-bold font-mono text-slate-750">
+                          <td data-label="Curso" className="py-3 px-3 font-extrabold text-slate-900">{p.curso}</td>
+                          <td data-label="Fecha" className="py-3 px-3 font-bold font-mono text-slate-750">
                             {new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-AR')}
                           </td>
-                          <td className="py-3 px-3 text-slate-500 font-semibold">{p.horario}</td>
-                          <td className="py-3 px-3 font-bold text-slate-600 text-center">{p.claseNum || '-'}</td>
-                          <td className="py-3 px-3 text-slate-600 max-w-xs truncate" title={p.temaAbordado}>{p.temaAbordado}</td>
-                          <td className="py-3 px-3 text-center">
+                          <td data-label="Horario" className="py-3 px-3 text-slate-500 font-semibold">{p.horario}</td>
+                          <td data-label="Clase N°" className="py-3 px-3 font-bold text-slate-600 text-center">{p.claseNum || '-'}</td>
+                          <td data-label="Tema Abordado" className="py-3 px-3 text-slate-600 max-w-xs truncate text-ellipsis overflow-hidden" title={p.temaAbordado}>{p.temaAbordado}</td>
+                          <td data-label="Presentes" className="py-3 px-3 text-center">
                             <span className="inline-block bg-accent-50 text-accent-700 px-2 py-0.5 rounded-lg border border-accent-200 font-bold">
                               {cantidadPresentes}
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-center">
+                          <td data-label="Ausentes" className="py-3 px-3 text-center">
                             <span className="inline-block bg-red-50 text-red-700 px-2 py-0.5 rounded-lg border border-red-200 font-bold">
                               {cantidadAusentes}
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-right">
+                          <td data-label="Acciones" className="py-3 px-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
@@ -917,9 +947,25 @@ const DocenteAsistencia = () => {
 
                 {/* Tabla de Asistencia */}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 mb-3 font-display">Tabla de Asistencia (Matrícula + Externos)</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 font-display">Tabla de Asistencia (Matrícula + Externos)</h3>
+                      <p className="text-[10px] text-slate-500 mt-0.5 font-semibold max-w-lg leading-relaxed">
+                        ¿Falta un alumno? Usá <strong className="text-accent-600">Matricular Estudiante</strong> si no está registrado. Si el DNI ya existe en el sistema, solo podrás cambiarle el curso de EF (sin duplicar).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMatricularModal(true)}
+                      className="inline-flex items-center gap-1.5 bg-accent-500 hover:bg-accent-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm shadow-accent-500/10 cursor-pointer active:scale-95 uppercase tracking-wide self-start sm:self-center shrink-0"
+                      title="Si el estudiante no está cargado, matricúlalo. Si ya existe por DNI, genera un cambio de curso."
+                    >
+                      <UserPlus size={13} />
+                      Matricular Estudiante
+                    </button>
+                  </div>
                   <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white shadow-inner">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-xs table-stack">
                       <thead>
                         <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase">
                           <th className="py-2.5 px-4">Estudiante (Apellido, Nombre)</th>
@@ -936,7 +982,7 @@ const DocenteAsistencia = () => {
                           
                           return (
                             <tr key={al.dni} className="hover:bg-slate-50 text-slate-700">
-                              <td className="py-3 px-4 font-semibold">
+                              <td data-label="Estudiante" className="py-3 px-4 font-semibold">
                                 <span className={
                                   al.noCursaEF 
                                     ? 'text-red-600 line-through' 
@@ -947,8 +993,8 @@ const DocenteAsistencia = () => {
                                   {al.nombre}
                                 </span>
                               </td>
-                              <td className="py-3 px-3 font-mono text-slate-500">{al.dni}</td>
-                              <td className="py-3 px-3 font-medium">
+                              <td data-label="DNI" className="py-3 px-3 font-mono text-slate-500">{al.dni}</td>
+                              <td data-label="Curso Origen" className="py-3 px-3 font-medium">
                                 {al.noCursaEF ? (
                                   <span className="inline-block bg-red-100 text-red-700 border border-red-300 px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider">
                                     NO CURSA EF
@@ -965,7 +1011,7 @@ const DocenteAsistencia = () => {
                                   <span className="text-slate-500">{al.cursoOrigen}</span>
                                 )}
                               </td>
-                              <td className="py-3 px-4">
+                              <td data-label="Control de Asistencia" className="py-3 px-4">
                                 {al.noCursaEF ? (
                                   <div className="text-center font-extrabold text-[9px] text-red-700 uppercase select-none py-1.5 bg-red-50 rounded-lg border border-red-200">
                                     NO CURSA EF
@@ -1305,6 +1351,13 @@ const DocenteAsistencia = () => {
           </div>
         </div>
       )}
+
+      {/* Modal: Matricular estudiante que no está cargado */}
+      <ModalMatricularEstudiante
+        open={showMatricularModal}
+        onClose={() => setShowMatricularModal(false)}
+        cursoPredeterminado={selectedCurso}
+      />
     </div>
   );
 };

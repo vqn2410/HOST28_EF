@@ -423,7 +423,7 @@ const ReportesTab = ({ cursos: cursosProp = [] }) => {
           Detalle Mensual - Curso {selectedCurso}
         </h3>
         <div className="overflow-x-auto font-sans">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-xs table-stack">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold uppercase">
                 <th className="py-3 px-3">Mes</th>
@@ -438,15 +438,15 @@ const ReportesTab = ({ cursos: cursosProp = [] }) => {
             <tbody className="divide-y divide-slate-100 font-medium">
               {statsMensuales.map(s => (
                 <tr key={s.mes} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                  <td className="py-3 px-3 font-bold text-slate-800">{s.label}</td>
-                  <td className="py-3 px-3 text-center font-mono text-slate-600">{s.clasesComputadas}</td>
-                  <td className="py-3 px-3 text-center font-mono text-slate-600">{s.alumnosConDatos}</td>
-                  <td className="py-3 px-3 text-center font-bold text-accent-600">{s.presentes}</td>
-                  <td className="py-3 px-3 text-center font-mono text-slate-600">{s.totales}</td>
-                  <td className={`py-3 px-3 text-right font-extrabold ${colorPorMedia(s.media)}`}>
+                  <td data-label="Mes" className="py-3 px-3 font-bold text-slate-800">{s.label}</td>
+                  <td data-label="Clases Computadas" className="py-3 px-3 text-center font-mono text-slate-600">{s.clasesComputadas}</td>
+                  <td data-label="Alumnos con Datos" className="py-3 px-3 text-center font-mono text-slate-600">{s.alumnosConDatos}</td>
+                  <td data-label="Presentes" className="py-3 px-3 text-center font-bold text-accent-600">{s.presentes}</td>
+                  <td data-label="Registros" className="py-3 px-3 text-center font-mono text-slate-600">{s.totales}</td>
+                  <td data-label="Media" className={`py-3 px-3 text-right font-extrabold ${colorPorMedia(s.media)}`}>
                     {s.media !== null ? `${s.media}%` : 'Sin datos'}
                   </td>
-                  <td className="py-3 px-3 text-center font-bold text-slate-600">
+                  <td data-label="Est. Equivalentes" className="py-3 px-3 text-center font-bold text-slate-600">
                     {s.estudiantesEquivalentes !== null ? `≈ ${s.estudiantesEquivalentes} de ${s.alumnosConDatos}` : '-'}
                   </td>
                 </tr>

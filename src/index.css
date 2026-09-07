@@ -13,8 +13,14 @@
   --color-primary-700: #142a54;
   --color-primary-900: #0a152a;
   
+  --color-accent-50: #e6f7ee;
+  --color-accent-100: #c9eeda;
+  --color-accent-200: #9eddbb;
+  --color-accent-300: #66c696;
+  --color-accent-400: #2fa873;
   --color-accent-500: #00a059; /* Verde Esmeralda del Logo */
   --color-accent-600: #00874a;
+  --color-accent-700: #006b3c;
   
   --color-gold-500: #fcd055; /* Amarillo Oro del Logo */
   
@@ -178,5 +184,89 @@ h1, h2, h3, .font-display {
 /* Soporte para iPhone bottom notch (safe-area-inset-bottom) */
 .pb-safe {
   padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+}
+
+/* ─── Tablas responsive en mobile: apilado vertical sin scroll horizontal ─── */
+@media (max-width: 767px) {
+  .table-stack {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .table-stack thead {
+    display: none !important;
+  }
+
+  .table-stack tbody,
+  .table-stack tfoot {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .table-stack tbody tr,
+  .table-stack tfoot tr {
+    display: block !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: #fff !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+
+  .table-stack td {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    text-align: right !important;
+    border-bottom: 1px dashed #e2e8f0;
+    padding: 8px 2px !important;
+    position: static !important;
+    background: transparent !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none;
+    white-space: normal;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  .table-stack td::before {
+    content: attr(data-label);
+    display: inline-block;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    text-align: left;
+    flex-shrink: 0;
+    min-width: 78px;
+    max-width: 40%;
+    line-height: 1.3;
+    padding-right: 8px;
+  }
+
+  .table-stack td:nth-child(1)::before {
+    font-size: 10px;
+    color: #334155;
+  }
+
+  .table-stack td:last-child {
+    border-bottom: none !important;
+  }
+
+  .table-stack td > * {
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Whitespace en celdas con texto extenso */
+  .table-stack td tr:hover,
+  .table-stack tbody tr:hover {
+    background: #fff !important;
+  }
 }
 

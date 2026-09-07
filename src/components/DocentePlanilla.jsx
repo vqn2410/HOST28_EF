@@ -412,7 +412,7 @@ const DocentePlanilla = () => {
           </div>
         ) : (
           <div className="overflow-x-auto font-sans">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse text-xs table-stack">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
                   <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -441,7 +441,7 @@ const DocentePlanilla = () => {
                   const stats = calcularEstadisticasAlumno(al.dni);
                   return (
                     <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
-                      <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                         {al.nombre}
                         {al.cursoOrigen !== selectedCurso && (
                           <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-255 px-1.5 py-0.5 rounded text-[9px] font-bold">
@@ -449,7 +449,7 @@ const DocentePlanilla = () => {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
+                      <td data-label="DNI" className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
                       
                       {diasClaseMes.map(d => {
                         const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
@@ -457,7 +457,8 @@ const DocentePlanilla = () => {
                         const state = getAsistenciaEstado(al.dni, d.dateStr);
                         return (
                           <td 
-                            key={d.dateStr} 
+                            key={d.dateStr}
+                            data-label={d.label}
                             className={`py-3 px-1.5 text-center font-bold ${
                               noHuboClase ? 'bg-red-50/50 border-x border-red-100' : ''
                             }`}
@@ -487,9 +488,9 @@ const DocentePlanilla = () => {
                       })}
 
                       {/* Resumen */}
-                      <td className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold border-l border-slate-200">{stats.presentes}</td>
-                      <td className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
-                      <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${
+                      <td data-label="Pres." className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold border-l border-slate-200">{stats.presentes}</td>
+                      <td data-label="Aus." className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
+                      <td data-label="% Asist." className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${
                         stats.porcentaje >= 80 ? "text-accent-600" :
                         stats.porcentaje >= 60 ? "text-yellow-600" : "text-red-600"
                       }`}>
@@ -539,7 +540,7 @@ const DocentePlanilla = () => {
           </div>
         ) : (
           <div className="overflow-x-auto font-sans">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse text-xs table-stack">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
                   <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -604,18 +605,18 @@ const DocentePlanilla = () => {
 
                   return (
                     <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
-                      <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
-                      <td className="py-3 px-2 text-slate-400 font-mono">{al.dni}</td>
-                      <td className="py-3 px-3">
+                      <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
+                      <td data-label="DNI" className="py-3 px-2 text-slate-400 font-mono">{al.dni}</td>
+                      <td data-label="Curso de EF Destino" className="py-3 px-3">
                         <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[10px] font-bold">
                           Curso {al.cursoEF}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-semibold text-slate-700">
+                      <td data-label="Turno y Horario" className="py-3 px-3 font-semibold text-slate-700">
                         {turnoLabel} ({horarioLabel})
                       </td>
-                      <td className="py-3 px-3 text-slate-500 font-semibold">{diasLabel}</td>
-                      <td className="py-3 px-3">
+                      <td data-label="Días de Cursada" className="py-3 px-3 text-slate-500 font-semibold">{diasLabel}</td>
+                      <td data-label="Asistencia Diaria" className="py-3 px-3">
                         <div className="flex flex-wrap gap-1 max-w-xs">
                           {detalleAsist.map(det => (
                             <span 
@@ -633,9 +634,9 @@ const DocentePlanilla = () => {
                           ))}
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold">{stats.presentes}</td>
-                      <td className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
-                      <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${
+                      <td data-label="Pres." className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold">{stats.presentes}</td>
+                      <td data-label="Aus." className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
+                      <td data-label="% Asist." className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${
                         stats.porcentaje >= 80 ? "text-accent-600" :
                         stats.porcentaje >= 60 ? "text-yellow-600" : "text-red-600"
                       }`}>
@@ -684,8 +685,8 @@ const DocentePlanilla = () => {
             <p className="text-xs text-slate-400 font-bold">No hay alumnos exceptuados en esta división.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto font-sans">
-            <table className="w-full text-left border-collapse text-xs">
+<div className="overflow-x-auto font-sans">
+            <table className="w-full text-left border-collapse text-xs table-stack">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
                   <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -697,14 +698,14 @@ const DocentePlanilla = () => {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {alumnosExceptuados.map((al) => (
                   <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
-                    <td className="py-3 px-3 font-bold text-slate-855 line-through text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
-                    <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
-                    <td className="py-3 px-3">
+                    <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-855 line-through text-slate-700 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
+                    <td data-label="DNI" className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
+                    <td data-label="Estado" className="py-3 px-3">
                       <span className="inline-block bg-red-50 text-red-700 border border-red-250 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
                         Exceptuado / No cursa
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-slate-500 italic">No registra cómputo de asistencia para EF.</td>
+                    <td data-label="Observaciones" className="py-3 px-3 text-slate-500 italic">No registra cómputo de asistencia para EF.</td>
                   </tr>
                 ))}
               </tbody>
@@ -721,7 +722,7 @@ const DocentePlanilla = () => {
             <h3 className="text-lg font-bold text-red-800 font-display">Clases Suspendidas - Registro de Motivos</h3>
           </div>
           <div className="overflow-x-auto font-sans">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse text-xs table-stack">
               <thead>
                 <tr className="border-b border-red-200 bg-red-50 text-red-700 font-bold">
                   <th className="py-2.5 px-3 w-32">Fecha</th>
@@ -734,19 +735,19 @@ const DocentePlanilla = () => {
               <tbody className="divide-y divide-red-100 text-slate-700">
                 {clasesSuspendidas.map((clase) => (
                   <tr key={clase.id} className="hover:bg-red-50/30">
-                    <td className="py-2.5 px-3 font-mono font-bold text-red-750">
+                    <td data-label="Fecha" className="py-2.5 px-3 font-mono font-bold text-red-750">
                       {clase.dia || clase.fecha.split('-')[2]} de {clase.mes || 'Mayo'}
                     </td>
-                    <td className="py-2.5 px-3 font-mono font-bold">
+                    <td data-label="Clase N°" className="py-2.5 px-3 font-mono font-bold">
                       #{clase.claseNum || '1'}
                     </td>
-                    <td className="py-2.5 px-3 font-semibold">
+                    <td data-label="Docente" className="py-2.5 px-3 font-semibold">
                       {clase.docenteNombre}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-red-800 italic">
+                    <td data-label="Motivo de Suspensión" className="py-2.5 px-3 font-bold text-red-800 italic">
                       {clase.motivoSuspension || "Licencia Médica"}
                     </td>
-                    <td className="py-2.5 px-3 text-center">
+                    <td data-label="Firma Digital" className="py-2.5 px-3 text-center">
                       <span className="inline-block bg-red-100 text-red-800 text-[9px] font-bold px-2 py-0.5 rounded border border-red-200">
                         FIRMADO DOCENTE ✔
                       </span>

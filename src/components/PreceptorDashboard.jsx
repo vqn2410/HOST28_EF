@@ -797,7 +797,7 @@ const PreceptorDashboard = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs">
+                  <table className="w-full text-left border-collapse text-xs table-stack">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
                         <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -825,7 +825,7 @@ const PreceptorDashboard = () => {
                         const stats = calcularEstadisticasAlumno(al.dni);
                         return (
                           <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
-                            <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                            <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                               {al.nombre}
                               {al.cursoOrigen !== selectedCurso && (
                                 <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-1.5 py-0.5 rounded text-[9px] font-bold">
@@ -833,7 +833,7 @@ const PreceptorDashboard = () => {
                                 </span>
                               )}
                             </td>
-                            <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
+                            <td data-label="DNI" className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
 
                             {diasClaseMes.map(d => {
                               const parte = partes.find(p => p.fecha === d.dateStr && p.curso === selectedCurso);
@@ -842,6 +842,7 @@ const PreceptorDashboard = () => {
                               return (
                                 <td
                                   key={d.dateStr}
+                                  data-label={d.label}
                                   className={`py-3 px-1.5 text-center font-bold ${noHuboClase ? 'bg-red-50/50 border-x border-red-100' : ''
                                     }`}
                                 >
@@ -870,9 +871,9 @@ const PreceptorDashboard = () => {
                             })}
 
                             {/* Resumen */}
-                            <td className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold border-l border-slate-200">{stats.presentes}</td>
-                            <td className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
-                            <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${stats.porcentaje >= 80 ? "text-accent-600" :
+                            <td data-label="Pres." className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold border-l border-slate-200">{stats.presentes}</td>
+                            <td data-label="Aus." className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
+                            <td data-label="% Asist." className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${stats.porcentaje >= 80 ? "text-accent-600" :
                               stats.porcentaje >= 60 ? "text-yellow-600" : "text-red-600"
                               }`}>
                               {stats.porcentaje}%
@@ -921,7 +922,7 @@ const PreceptorDashboard = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs">
+                  <table className="w-full text-left border-collapse text-xs table-stack">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
                         <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -985,18 +986,18 @@ const PreceptorDashboard = () => {
 
                         return (
                           <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
-                            <td className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
-                            <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
-                            <td className="py-3 px-3">
+                            <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-800 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
+                            <td data-label="DNI" className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
+                            <td data-label="Curso de EF Destino" className="py-3 px-3">
                               <span className="inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-2 py-0.5 rounded text-[10px] font-bold">
                                 Curso {al.cursoEF}
                               </span>
                             </td>
-                            <td className="py-3 px-3 font-semibold text-slate-700">
+                            <td data-label="Turno y Horario" className="py-3 px-3 font-semibold text-slate-700">
                               {turnoLabel} ({horarioLabel})
                             </td>
-                            <td className="py-3 px-3 text-slate-500 font-semibold">{diasLabel}</td>
-                            <td className="py-3 px-3">
+                            <td data-label="Días de Cursada" className="py-3 px-3 text-slate-500 font-semibold">{diasLabel}</td>
+                            <td data-label="Asistencia Diaria" className="py-3 px-3">
                               <div className="flex flex-wrap gap-1 max-w-xs">
                                 {detalleAsist.map(det => (
                                   <span
@@ -1013,9 +1014,9 @@ const PreceptorDashboard = () => {
                                 ))}
                               </div>
                             </td>
-                            <td className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold">{stats.presentes}</td>
-                            <td className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
-                            <td className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${stats.porcentaje >= 80 ? "text-accent-600" :
+                            <td data-label="Pres." className="py-3 px-3 text-center bg-slate-50 text-slate-700 font-bold">{stats.presentes}</td>
+                            <td data-label="Aus." className="py-3 px-3 text-center bg-slate-50 text-red-650 font-bold">{stats.ausentes}</td>
+                            <td data-label="% Asist." className={`py-3 px-3 text-right bg-slate-50 font-extrabold ${stats.porcentaje >= 80 ? "text-accent-600" :
                               stats.porcentaje >= 60 ? "text-yellow-600" : "text-red-600"
                               }`}>
                               {stats.porcentaje}%
@@ -1064,7 +1065,7 @@ const PreceptorDashboard = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs">
+                  <table className="w-full text-left border-collapse text-xs table-stack">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
                         <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -1076,14 +1077,14 @@ const PreceptorDashboard = () => {
                     <tbody className="divide-y divide-slate-100 font-medium">
                       {alumnosExceptuados.map((al) => (
                         <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors group">
-                          <td className="py-3 px-3 font-bold text-slate-850 line-through sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
-                          <td className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
-                          <td className="py-3 px-3">
+                          <td data-label="Estudiante" className="py-3 px-3 font-bold text-slate-850 line-through sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">{al.nombre}</td>
+                          <td data-label="DNI" className="py-3 px-2 font-mono text-slate-400">{al.dni}</td>
+                          <td data-label="Estado" className="py-3 px-3">
                             <span className="inline-block bg-red-50 text-red-700 border border-red-250 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
                               No cursa
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-slate-500 italic">No registra cómputo de asistencia para EF.</td>
+                          <td data-label="Observaciones" className="py-3 px-3 text-slate-500 italic">No registra cómputo de asistencia para EF.</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1113,7 +1114,7 @@ const PreceptorDashboard = () => {
                   <h3 className="text-lg font-bold text-red-800 font-display">Clases Suspendidas - Registro de Motivos</h3>
                 </div>
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs">
+                  <table className="w-full text-left border-collapse text-xs table-stack">
                     <thead>
                       <tr className="border-b border-red-200 bg-red-50 text-red-700 font-bold">
                         <th className="py-2.5 px-3 w-32">Fecha</th>
@@ -1126,19 +1127,19 @@ const PreceptorDashboard = () => {
                     <tbody className="divide-y divide-red-100 text-slate-700">
                       {clasesSuspendidas.map((clase) => (
                         <tr key={clase.id} className="hover:bg-red-50/30">
-                          <td className="py-2.5 px-3 font-mono font-bold text-red-750">
+                          <td data-label="Fecha" className="py-2.5 px-3 font-mono font-bold text-red-750">
                             {clase.dia || clase.fecha.split('-')[2]} de {clase.mes || 'Mayo'}
                           </td>
-                          <td className="py-2.5 px-3 font-mono font-bold">
+                          <td data-label="Clase N°" className="py-2.5 px-3 font-mono font-bold">
                             #{clase.claseNum || '1'}
                           </td>
-                          <td className="py-2.5 px-3 font-semibold">
+                          <td data-label="Docente" className="py-2.5 px-3 font-semibold">
                             {clase.docenteNombre}
                           </td>
-                          <td className="py-2.5 px-3 font-bold text-red-800 italic">
+                          <td data-label="Motivo de Suspensión" className="py-2.5 px-3 font-bold text-red-800 italic">
                             {clase.motivoSuspension || "Licencia Médica"}
                           </td>
-                          <td className="py-2.5 px-3 text-center">
+                          <td data-label="Firma Digital" className="py-2.5 px-3 text-center">
                             <span className="inline-block bg-red-100 text-red-800 text-[9px] font-bold px-2 py-0.5 rounded border border-red-200">
                               FIRMADO DOCENTE ✔
                             </span>
@@ -1307,7 +1308,7 @@ const PreceptorDashboard = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto font-sans">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-xs table-stack">
                       <thead>
                         <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
                           <th className="py-3 px-3">Curso</th>
@@ -1325,11 +1326,11 @@ const PreceptorDashboard = () => {
                           return (
                             <React.Fragment key={sol.id}>
                               <tr className="hover:bg-slate-50 text-slate-700 transition-colors">
-                                <td className="py-3 px-3 font-extrabold text-slate-900">{sol.curso}</td>
-                                <td className="py-3 px-3 font-bold font-mono text-slate-750">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
-                                <td className="py-3 px-3 font-semibold text-slate-800">{sol.solicitanteNombre} <span className="text-[9px] text-slate-450 font-normal">({sol.solicitanteRol})</span></td>
-                                <td className="py-3 px-3 font-mono text-slate-500">{new Date(sol.fechaSolicitud).toLocaleString()}</td>
-                                <td className="py-3 px-3 text-right">
+                                <td data-label="Curso" className="py-3 px-3 font-extrabold text-slate-900">{sol.curso}</td>
+                                <td data-label="Fecha Requerida" className="py-3 px-3 font-bold font-mono text-slate-750">{new Date(sol.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
+                                <td data-label="Solicitante" className="py-3 px-3 font-semibold text-slate-800">{sol.solicitanteNombre} <span className="text-[9px] text-slate-450 font-normal">({sol.solicitanteRol})</span></td>
+                                <td data-label="Fecha Solicitud" className="py-3 px-3 font-mono text-slate-500">{new Date(sol.fechaSolicitud).toLocaleString()}</td>
+                                <td data-label="Estado" className="py-3 px-3 text-right">
                                   <div className="flex items-center justify-end gap-2">
                                     <button
                                       type="button"
@@ -1828,7 +1829,7 @@ const PreceptorDashboard = () => {
 
                 {/* Tabla de Estudiantes */}
                 <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-60 overflow-y-auto bg-white shadow-sm">
-                  <table className="w-full text-left border-collapse text-xs">
+                  <table className="w-full text-left border-collapse text-xs table-stack">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase">
                         <th className="py-2.5 px-3">Estudiante (Apellido, Nombre)</th>
@@ -1845,7 +1846,7 @@ const PreceptorDashboard = () => {
                           const esExterno = al.cursoOrigen !== selectedParteDetail.curso;
                           return (
                             <tr key={al.dni} className="hover:bg-slate-50 text-slate-700 transition-colors">
-                              <td className="py-2.5 px-3 font-semibold text-slate-800">
+                              <td data-label="Estudiante" className="py-2.5 px-3 font-semibold text-slate-800">
                                 {al.nombre}
                                 {esExterno && (
                                   <span className="ml-2 inline-block bg-yellow-50 text-yellow-750 border border-yellow-250 px-1.5 py-0.2 rounded text-[8px] font-bold">
@@ -1853,8 +1854,8 @@ const PreceptorDashboard = () => {
                                   </span>
                                 )}
                               </td>
-                              <td className="py-2.5 px-2 font-mono text-slate-400">{al.dni}</td>
-                              <td className="py-2.5 px-2 text-center">
+                              <td data-label="DNI" className="py-2.5 px-2 font-mono text-slate-400">{al.dni}</td>
+                              <td data-label="Estado" className="py-2.5 px-2 text-center">
                                 {selectedParteDetail.huboClase === 'No' ? (
                                   <span className="inline-block px-2 py-0.5 rounded text-[9px] font-extrabold bg-slate-100 text-slate-400 border border-slate-200 line-through">
                                     S
