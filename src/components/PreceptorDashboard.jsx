@@ -438,6 +438,45 @@ const PreceptorDashboard = () => {
     return { presentes, ausentes, totalClasesGrabadas: totales, porcentaje };
   };
 
+  // Calcular la asistencia media de un grupo de alumnos (excluye automáticamente feriados, clases suspendidas e inasistencias docentes)
+  const calcularMediaAsistencia = (listaAlumnos, fnStats) => {
+    const conDatos = listaAlumnos
+      .map(fnStats)
+      .filter(stats => stats.totalClasesGrabadas > 0);
+
+    if (conDatos.length === 0) {
+      return { media: 100, conDatos: 0, presentes: 0, ausentes: 0, totales: 0, estudiantesEquivalentes: 0 };
+    }
+
+    const presentes = conDatos.reduce((acc, s) => acc + s.presentes, 0);
+    const ausentes = conDatos.reduce((acc, s) => acc + s.ausentes, 0);
+    const totales = conDatos.reduce((acc, s) => acc + s.totalClasesGrabadas, 0);
+    const media = totales > 0 ? Math.round((presentes / totales) * 100) : 100;
+
+    return {
+      media,
+      conDatos: conDatos.length,
+      presentes,
+      ausentes,
+      totales,
+      estudiantesEquivalentes: Math.round((media / 100) * conDatos.length)
+    };
+  };
+
+  const mediaGrilla1 = calcularMediaAsistencia(alumnosRegulares, al => calcularEstadisticasAlumno(al.dni));
+
+  const mediaGrilla2 = calcularMediaAsistencia(alumnosReasignados, al => calcularEstadisticasAlumnoReasignado(al));
+
+  const mediaTotalCurso = {
+    media: (mediaGrilla1.totales + mediaGrilla2.totales) > 0
+      ? Math.round(((mediaGrilla1.presentes + mediaGrilla2.presentes) / (mediaGrilla1.totales + mediaGrilla2.totales)) * 100)
+      : 100,
+    conDatos: mediaGrilla1.conDatos + mediaGrilla2.conDatos,
+    presentes: mediaGrilla1.presentes + mediaGrilla2.presentes,
+    totales: mediaGrilla1.totales + mediaGrilla2.totales
+  };
+  mediaTotalCurso.estudiantesEquivalentes = Math.round((mediaTotalCurso.media / 100) * mediaTotalCurso.conDatos);
+
   // Manejo de Carga de Solicitud de Parte
   const handleSolicitarSubmit = (e) => {
     e.preventDefault();
@@ -648,6 +687,49 @@ const PreceptorDashboard = () => {
               </div>
             </div>
 
+            {/* Tarjeta de Asistencia Media del Curso */}
+            <div className="glass-panel rounded-3xl p-6 border border-primary-500/30 shadow-lg bg-gradient-to-br from-primary-500/5 via-white to-accent-500/5 overflow-hidden relative">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary-500/10 rounded-full blur-2xl"></div>
+              <div className="flex flex-wrap items-center justify-between gap-5 relative">
+                <div className="flex items-center gap-4">
+                  <div className="p-3.5 rounded-2xl bg-primary-500 border border-primary-200 text-white shadow-md">
+                    <BarChart3 size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-slate-900 font-display uppercase tracking-wide">
+                      Asistencia Media del Curso {selectedCurso}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5 max-w-md">
+                      Calculada automáticamente sobre la asistencia registrada. No se computan feriados, clases suspendidas ni inasistencias docentes.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Media de Asistencia</span>
+                    <span className={`text-4xl font-extrabold font-mono ${mediaTotalCurso.media >= 80 ? 'text-accent-600' : mediaTotalCurso.media >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {mediaTotalCurso.media}%
+                    </span>
+                    <span className="block text-[10px] font-bold text-slate-600 mt-0.5">
+                      ≈ {mediaTotalCurso.estudiantesEquivalentes} de {mediaTotalCurso.conDatos} estudiantes
+                    </span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Presentes</span>
+                    <span className="text-2xl font-extrabold text-slate-800">{mediaTotalCurso.presentes}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Registros</span>
+                    <span className="text-2xl font-extrabold text-slate-800">{mediaTotalCurso.totales}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Alumnos con Datos</span>
+                    <span className="text-2xl font-extrabold text-slate-800">{mediaTotalCurso.conDatos}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Grilla 1 - Alumnos Oficiales */}
             <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
@@ -759,6 +841,21 @@ const PreceptorDashboard = () => {
                         );
                       })}
                     </tbody>
+                    <tfoot>
+                      <tr className="bg-slate-100/80 border-t-2 border-slate-200 font-extrabold">
+                        <td colSpan={diasClaseMes.length + 2} className="py-3 px-3 sticky left-0 bg-slate-100 z-10 border-r border-slate-200 font-bold text-slate-700 text-[11px] uppercase tracking-wide">
+                          Asistencia Media del Curso (Regulares + Externos)
+                          <span className="block text-[9px] text-slate-500 font-bold normal-case">
+                            ≈ {mediaGrilla1.estudiantesEquivalentes} de {mediaGrilla1.conDatos} estudiantes presentes en promedio
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center text-slate-800 font-extrabold">{mediaGrilla1.presentes}</td>
+                        <td className="py-3 px-3 text-center text-red-600 font-extrabold">{mediaGrilla1.ausentes}</td>
+                        <td className={`py-3 px-3 text-right font-extrabold ${mediaGrilla1.media >= 80 ? "text-accent-600" : mediaGrilla1.media >= 60 ? "text-yellow-600" : "text-red-600"}`}>
+                          {mediaGrilla1.media}%
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               )}
@@ -887,6 +984,21 @@ const PreceptorDashboard = () => {
                         );
                       })}
                     </tbody>
+                    <tfoot>
+                      <tr className="bg-slate-100/80 border-t-2 border-slate-200 font-extrabold">
+                        <td colSpan={6} className="py-3 px-3 sticky left-0 bg-slate-100 z-10 border-r border-slate-200 font-bold text-slate-700 text-[11px] uppercase tracking-wide">
+                          Asistencia Media del Curso (Reasignados)
+                          <span className="block text-[9px] text-slate-500 font-bold normal-case">
+                            ≈ {mediaGrilla2.estudiantesEquivalentes} de {mediaGrilla2.conDatos} estudiantes presentes en promedio
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center text-slate-800 font-extrabold">{mediaGrilla2.presentes}</td>
+                        <td className="py-3 px-3 text-center text-red-600 font-extrabold">{mediaGrilla2.ausentes}</td>
+                        <td className={`py-3 px-3 text-right font-extrabold ${mediaGrilla2.media >= 80 ? "text-accent-600" : mediaGrilla2.media >= 60 ? "text-yellow-600" : "text-red-600"}`}>
+                          {mediaGrilla2.media}%
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               )}
