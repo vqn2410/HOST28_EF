@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
-import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen, Download, TrendingUp } from 'lucide-react';
+import { Filter, BarChart3, AlertCircle, Clock, Bell, FileText, Check, Plus, Calendar, X, FileSignature, ChevronRight, ChevronDown, ChevronUp, BookOpen, Download, TrendingUp, Table2, LayoutList } from 'lucide-react';
 import ReportesTab from './ReportesTab';
 
 const esFechaNoLectiva = (fecha, feriados) => feriados.some((feriado) =>
@@ -98,6 +98,16 @@ const PreceptorDashboard = () => {
     const mesesEscolares = ["03", "04", "05", "06", "07", "08", "09", "10", "11"];
     return mesesEscolares.includes(currentMonth) ? currentMonth : "05";
   });
+  // Vista de la planilla: apilada (tarjetas por estudiante) o lista completa (tabla ancha con scroll horizontal).
+  // El botón se muestra solo en mobile; se adapta automáticamente al ancho de pantalla.
+  const [vistaCompleta, setVistaCompleta] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  const tableClass = vistaCompleta ? '' : 'table-stack table-stack-all';
+
+  useEffect(() => {
+    const onResize = () => setVistaCompleta(window.innerWidth >= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [selectedCurso, setSelectedCurso] = useState(() => {
     return user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
       ? user.cursosAsignados[0]
@@ -776,6 +786,20 @@ const PreceptorDashboard = () => {
               </div>
             </div>
 
+            {/* Toggle (solo mobile): vista apilada vs lista completa */}
+            <button
+              type="button"
+              onClick={() => setVistaCompleta(v => !v)}
+              className={`md:hidden w-full flex items-center justify-center gap-2 py-3 rounded-2xl border font-extrabold text-[11px] uppercase tracking-wider transition-all active:scale-95 cursor-pointer ${
+                vistaCompleta
+                  ? 'bg-white border-slate-300 text-slate-700 shadow-xs hover:border-primary-400'
+                  : 'bg-primary-500 border-primary-500 text-white shadow-md'
+              }`}
+            >
+              {vistaCompleta ? <LayoutList size={16} /> : <Table2 size={16} />}
+              {vistaCompleta ? 'Vista compacta (tarjetas por estudiante)' : 'Vista de lista completa (todas las columnas)'}
+            </button>
+
             {/* Grilla 1 - Alumnos Oficiales */}
             <div className="glass-panel rounded-3xl p-6 border border-slate-200 shadow-lg bg-white">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 border-b border-slate-100 pb-4">
@@ -803,7 +827,7 @@ const PreceptorDashboard = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs table-stack">
+                  <table className={`w-full text-left border-collapse text-xs ${tableClass}`}>
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
                         <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -933,7 +957,7 @@ const PreceptorDashboard = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs table-stack">
+                  <table className={`w-full text-left border-collapse text-xs ${tableClass}`}>
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-650 font-bold">
                         <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -1083,7 +1107,7 @@ const PreceptorDashboard = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs table-stack">
+                  <table className={`w-full text-left border-collapse text-xs ${tableClass}`}>
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
                         <th className="py-3 px-3 w-60 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Estudiante (Apellido, Nombre)</th>
@@ -1132,7 +1156,7 @@ const PreceptorDashboard = () => {
                   <h3 className="text-lg font-bold text-red-800 font-display">Clases Suspendidas - Registro de Motivos</h3>
                 </div>
                 <div className="overflow-x-auto font-sans">
-                  <table className="w-full text-left border-collapse text-xs table-stack">
+                  <table className={`w-full text-left border-collapse text-xs ${tableClass}`}>
                     <thead>
                       <tr className="border-b border-red-200 bg-red-50 text-red-700 font-bold">
                         <th className="py-2.5 px-3 w-32">Fecha</th>
@@ -1326,7 +1350,7 @@ const PreceptorDashboard = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto font-sans">
-                    <table className="w-full text-left border-collapse text-xs table-stack">
+                    <table className={`w-full text-left border-collapse text-xs ${tableClass}`}>
                       <thead>
                         <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-bold">
                           <th className="py-3 px-3">Curso</th>
@@ -1847,7 +1871,7 @@ const PreceptorDashboard = () => {
 
                 {/* Tabla de Estudiantes */}
                 <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-60 overflow-y-auto bg-white shadow-sm">
-                  <table className="w-full text-left border-collapse text-xs table-stack">
+                  <table className={`w-full text-left border-collapse text-xs ${tableClass}`}>
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase">
                         <th className="py-2.5 px-3">Estudiante (Apellido, Nombre)</th>
