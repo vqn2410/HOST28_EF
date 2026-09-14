@@ -389,7 +389,7 @@ const DocenteAsistencia = () => {
       actividadesFinal = '-';
       observacionesFinal = `Clase suspendida. Motivo: ${motivoCompleto}`;
       claseNumFinal = '-';
-      characterFinal = '-';
+      caracterFinal = '-';
       unidadFinal = '-';
       caracterFinal = '-';
       dinamicaFinal = '-';
