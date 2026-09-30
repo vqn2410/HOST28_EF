@@ -98,16 +98,10 @@ const PreceptorDashboard = ({ activeTabInicial = 'planilla' }) => {
     const mesesEscolares = ["03", "04", "05", "06", "07", "08", "09", "10", "11"];
     return mesesEscolares.includes(currentMonth) ? currentMonth : "05";
   });
-  // Vista de la planilla: apilada (tarjetas por estudiante) o lista completa (tabla ancha con scroll horizontal).
-  // El botón se muestra solo en mobile; se adapta automáticamente al ancho de pantalla.
-  const [vistaCompleta, setVistaCompleta] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  // Vista de la planilla: lista completa (tabla ancha con scroll) por defecto, como siempre se vio.
+  // El toggle (solo visible en mobile) permite pasar a tarjetas apiladas por estudiante.
+  const [vistaCompleta, setVistaCompleta] = useState(true);
   const tableClass = vistaCompleta ? '' : 'table-stack table-stack-all';
-
-  useEffect(() => {
-    const onResize = () => setVistaCompleta(window.innerWidth >= 768);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
   const [selectedCurso, setSelectedCurso] = useState(() => {
     return user.rol === "Preceptor" && user.cursosAsignados && user.cursosAsignados.length > 0
       ? user.cursosAsignados[0]

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSchoolData } from '../context/SchoolDataContext';
 import { useAuth } from '../context/AuthContext';
 import { Filter, BarChart3, AlertCircle, Clock, FileSignature, Table2, LayoutList } from 'lucide-react';
@@ -41,16 +41,10 @@ const DocentePlanilla = () => {
     return schoolTurno === 'Mañana' ? 'Tarde' : 'Mañana';
   });
 
-  // Vista de la planilla: apilada (tarjetas por estudiante) o lista completa (tabla ancha con scroll horizontal).
-  // El botón se muestra solo en mobile; se adapta automáticamente al ancho de pantalla.
-  const [vistaCompleta, setVistaCompleta] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  // Vista de la planilla: lista completa (tabla ancha con scroll) por defecto, como siempre se vio.
+  // El toggle (solo visible en mobile) permite pasar a tarjetas apiladas por estudiante.
+  const [vistaCompleta, setVistaCompleta] = useState(true);
   const tableClass = vistaCompleta ? '' : 'table-stack table-stack-all';
-
-  useEffect(() => {
-    const onResize = () => setVistaCompleta(window.innerWidth >= 768);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   // Corregir curso seleccionado si cambia la lista
   React.useEffect(() => {
