@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSchoolData } from '../context/SchoolDataContext';
 import { 
   LogOut, Shield, GraduationCap, Calendar, User, Clock, 
   CalendarCheck, BookOpen, AlertCircle, LayoutDashboard, 
-  Users, UserPlus, Menu, X, Upload, TrendingUp
+  Users, UserPlus, Menu, X, Upload, TrendingUp, Bell
 } from 'lucide-react';
 
 const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docenteTab, setDocenteTab }) => {
   const { user, logout } = useAuth();
+  const { solicitudesFaltantes = [] } = useSchoolData();
 
   if (!user) return null;
 
@@ -22,7 +24,7 @@ const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docen
     setIsMobileOpen(false);
   };
 
-  const NavItem = ({ icon: Icon, label, isActive, onClick }) => (
+  const NavItem = ({ icon: Icon, label, isActive, onClick, badge }) => (
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
@@ -32,7 +34,12 @@ const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docen
       }`}
     >
       <Icon size={16} />
-      <span>{label}</span>
+      <span className="flex-1 text-left">{label}</span>
+      {badge > 0 && (
+        <span className="inline-flex items-center justify-center min-w-[22px] px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-extrabold">
+          {badge}
+        </span>
+      )}
     </button>
   );
 
@@ -137,6 +144,7 @@ const Sidebar = ({ currentPath, onNavigate, isMobileOpen, setIsMobileOpen, docen
               </Section>
               <Section title="Asistencia">
                 <NavItem icon={Calendar} label="Asistencia Mensual" isActive={currentPath === '/asistencia-mensual'} onClick={() => handleNav('/asistencia-mensual')} />
+                <NavItem icon={Bell} label="Solicitud de Parte" isActive={currentPath === '/solicitudes-parte'} onClick={() => handleNav('/solicitudes-parte')} badge={solicitudesFaltantes.filter(s => !s.completada).length} />
                 <NavItem icon={TrendingUp} label="Reportes de Asistencia" isActive={currentPath === '/reportes'} onClick={() => handleNav('/reportes')} />
               </Section>
             </>

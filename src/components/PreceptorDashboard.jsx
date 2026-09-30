@@ -9,7 +9,7 @@ const esFechaNoLectiva = (fecha, feriados) => feriados.some((feriado) =>
   (feriado.tipo === 'RECESO_INVIERNO' && fecha >= feriado.fechaInicio && fecha <= feriado.fechaFin)
 );
 
-const PreceptorDashboard = () => {
+const PreceptorDashboard = ({ activeTabInicial = 'planilla' }) => {
   const {
     alumnos,
     partes,
@@ -25,7 +25,7 @@ const PreceptorDashboard = () => {
   const { user } = useAuth();
 
   // Navegación de Pestañas
-  const [activeTab, setActiveTab] = useState('planilla'); // 'planilla' | 'solicitudes' | 'informes' | 'partes'
+  const [activeTab, setActiveTab] = useState(activeTabInicial); // 'planilla' | 'solicitudes' | 'informes' | 'partes'
   const [selectedParteDetail, setSelectedParteDetail] = useState(null);
   const [showModalCurricular, setShowModalCurricular] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);

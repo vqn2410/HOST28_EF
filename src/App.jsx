@@ -124,6 +124,16 @@ const AppContent = () => {
             </ProtectedRoute>
           )}
 
+          {currentPath === '/solicitudes-parte' && (
+            <ProtectedRoute
+              allowedRoles={['Equipo de Conducción', 'Preceptor']}
+              currentPath="/solicitudes-parte"
+              onNavigate={handleNavigate}
+            >
+              <PreceptorDashboard activeTabInicial="solicitudes" />
+            </ProtectedRoute>
+          )}
+
           {currentPath === '/asistencia' && (
             <ProtectedRoute
               allowedRoles={['Equipo de Conducción', 'Docente']}

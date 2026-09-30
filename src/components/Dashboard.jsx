@@ -52,6 +52,7 @@ const Dashboard = ({ onNavigate, onDocenteNav }) => {
       { label: "Matricular Estudiante", desc: "Alta de un estudiante de forma individual.", icon: GraduationCap, path: '/admin/estudiantes_carga', color: 'amber' },
       { label: "Listado de Estudiantes", desc: "Consulta de la matrícula escolar.", icon: BookOpen, path: '/admin/estudiantes_lista', color: 'rose' },
       { label: "Asistencia Mensual", desc: "Planillas y solicitudes de partes faltantes.", icon: Calendar, path: '/asistencia-mensual', color: 'emerald' },
+      { label: "Solicitud de Parte", desc: "Solicitar partes faltantes a los docentes y seguir su cumplimiento.", icon: Bell, path: '/solicitudes-parte', color: 'rose' },
       { label: "Reportes de Asistencia", desc: "Gráficas mensuales por curso.", icon: TrendingUp, path: '/reportes', color: 'violet' }
     ],
     "Docente": [
